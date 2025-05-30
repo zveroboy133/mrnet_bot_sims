@@ -1,9 +1,14 @@
 import cv2 # Импортируем библиотеку OpenCV-Python
 import numpy as np
-import pytesseract
+import easyocr
 from PIL import Image
 import os
 import platform
+import ssl
+import certifi
+
+# Настройка SSL для решения проблем с сертификатами
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Указываем путь к исполняемому файлу Tesseract только для Windows
 if platform.system() == 'Windows':
@@ -36,16 +41,21 @@ def preprocess_image(image_path, output_dir):
     save_image(gray, "2_gray.jpg", output_dir)
     
     # Применение размытия для уменьшения шума
-    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
     save_image(blur, "3_blur.jpg", output_dir)
     
     # Применение адаптивной пороговой обработки
     thresh = cv2.adaptiveThreshold(
-        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+        blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
     )
     save_image(thresh, "4_threshold.jpg", output_dir)
     
-    return thresh, img
+    # Морфологические операции для улучшения качества
+    kernel = np.ones((2,2), np.uint8)
+    morph = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    save_image(morph, "5_morph.jpg", output_dir)
+    
+    return morph, img
 
 def find_text_regions(image, original_img, output_dir):
     # Поиск контуров
@@ -56,7 +66,7 @@ def find_text_regions(image, original_img, output_dir):
     # Создаем копию изображения для отрисовки контуров
     contour_img = original_img.copy()
     cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)
-    save_image(contour_img, "5_all_contours.jpg", output_dir)
+    save_image(contour_img, "6_all_contours.jpg", output_dir)
     
     # Фильтрация контуров по размеру
     min_area = 100  # Минимальная площадь контура
@@ -73,7 +83,7 @@ def find_text_regions(image, original_img, output_dir):
             # Рисуем прямоугольник вокруг области с текстом
             cv2.rectangle(filtered_contour_img, (x, y), (x+w, y+h), (0, 255, 0), 2)
     
-    save_image(filtered_contour_img, "6_filtered_regions.jpg", output_dir)
+    save_image(filtered_contour_img, "7_filtered_regions.jpg", output_dir)
     
     return text_regions
 
@@ -82,29 +92,52 @@ def extract_text(image, regions, original_img, output_dir):
     # Создаем изображение для отображения распознанных областей
     recognition_img = original_img.copy()
     
-    for i, (x, y, w, h) in enumerate(regions):
-        # Вырезаем область с текстом
-        roi = image[y:y+h, x:x+w]
-        
-        # Сохраняем каждую область отдельно
-        save_image(roi, f"7_region_{i+1}.jpg", output_dir)
-        
-        # Распознаем текст
-        text = pytesseract.image_to_string(
-            roi, 
-            config='--psm 6 --oem 3 -c tessedit_char_whitelist=0123456789'
+    try:
+        # Инициализируем EasyOCR с дополнительными параметрами
+        reader = easyocr.Reader(
+            ['en'],
+            gpu=False,
+            download_enabled=True,
+            model_storage_directory='./easyocr_models',
+            user_network_directory='./easyocr_models',
+            recog_network='english_g2'
         )
         
-        # Очищаем текст от пробелов и переносов строк
-        text = ''.join(text.split())
-        
-        if text:  # Если текст не пустой
-            results.append(text)
-            # Добавляем текст на изображение
-            cv2.putText(recognition_img, text, (x, y-10), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+        for i, (x, y, w, h) in enumerate(regions):
+            try:
+                # Вырезаем область с текстом
+                roi = image[y:y+h, x:x+w]
+                
+                # Добавляем отступы для лучшего распознавания
+                padding = 10
+                roi = cv2.copyMakeBorder(roi, padding, padding, padding, padding, 
+                                    cv2.BORDER_CONSTANT, value=255)
+                
+                # Сохраняем каждую область отдельно
+                save_image(roi, f"8_region_{i+1}.jpg", output_dir)
+                
+                # Распознаем текст с помощью EasyOCR
+                result = reader.readtext(roi)
+                
+                if result:  # Если текст найден
+                    text = result[0][1]  # Берем только текст из результата
+                    # Очищаем текст от нецифровых символов
+                    text = ''.join(filter(str.isdigit, text))
+                    
+                    if text:  # Если остались цифры
+                        results.append(text)
+                        # Добавляем текст на изображение
+                        cv2.putText(recognition_img, text, (x, y-10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+            except Exception as e:
+                print(f"Ошибка при обработке области {i+1}: {str(e)}")
+                continue
+                
+    except Exception as e:
+        print(f"Ошибка при инициализации EasyOCR: {str(e)}")
+        return results
     
-    save_image(recognition_img, "8_recognition_result.jpg", output_dir)
+    save_image(recognition_img, "9_recognition_result.jpg", output_dir)
     return results
 
 def process_image(image_path):
@@ -141,10 +174,11 @@ if __name__ == "__main__":
         print("2. Оттенки серого")
         print("3. Размытие")
         print("4. Пороговая обработка")
-        print("5. Все найденные контуры")
-        print("6. Отфильтрованные области с текстом")
-        print("7. Отдельные области с текстом")
-        print("8. Финальный результат с распознанным текстом")
+        print("5. Морфологические операции")
+        print("6. Все найденные контуры")
+        print("7. Отфильтрованные области с текстом")
+        print("8. Отдельные области с текстом")
+        print("9. Финальный результат с распознанным текстом")
             
     except Exception as e:
         print(f"Произошла ошибка: {str(e)}")

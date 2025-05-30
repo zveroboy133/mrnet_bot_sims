@@ -177,8 +177,12 @@ ENV/
 # IDE
 .idea/
 .vscode/
+*.swp
+*.swo
 
 # Project specific
 processing_steps/
+easyocr_models/
 *.jpg
 *.png
+*.jpeg
