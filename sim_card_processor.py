@@ -9,6 +9,10 @@ class SimCard:
             return "Билайн"
         elif self.number.startswith("8970102"):
             return "Мегафон"
+        elif self.number.startswith("8970120"):
+            return "Теле2"
+        elif self.number.startswith("8970101"):
+            return "МТС"
         return "Неизвестный оператор"
 
     def _process_number(self):
