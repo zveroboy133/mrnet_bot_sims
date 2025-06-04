@@ -75,11 +75,12 @@ class GoogleSheetsProcessor:
             List[Dict]: Список словарей с найденными записями
         """
         try:
+            #headers = ["1"	"2 Оператор"	"3 Дата прихода сим"	"4 ЛК"	"5 Мобильный номер (MSISDN)"	"ICCID"	"Дата активации на Госуслугах"	"Тип Симкарты на Госуслугах"	"Тип модемов"	"Адрес установки"	"Получена"	"Активирована"	"Дата возврата симкарты"	"Тариф"	"Трафик"	Абон плата	Состояние симкарт	Контрагент	Устройство	Состояние ( Адрес)	Где симка физически	Комментарий	ДО какого блок	Устройство в котором была ранее	Дата отправки новому клиенту	Предыдущая стоимость	дата возврата	от кого вернулась симкарта	из какого устройства	"дата возврата"	"от кого вернулась симкарта"	"из какого устройства"	"дата возврата"	"от кого вернулась симкарта"	"из какого устройства"]
             data = self.worksheet.get_all_records()
             results = []
             
             for record in data:
-                if name.lower() in str(record.get('name', '')).lower():
+                if name.lower() in str(record.get('Устройство', '')).lower():
                     results.append(record)
             return results
         except Exception as e:
@@ -148,15 +149,15 @@ if __name__ == "__main__":
     processor = GoogleSheetsProcessor()
     
     # Пример поиска по телефону
-    result = processor.search_by_phone("+79001234567")
-    if result:
-        print("Найдена запись:", result)
+    #result = processor.search_by_phone("+79001234567")
+    #if result:
+    #    print("Найдена запись:", result)
     
     # Пример поиска по имени
-    results = processor.search_by_name("Иван")
+    results = processor.search_by_name("vkusvill-211")
     if results:
         print("Найдены записи:", results)
     
     # Пример получения всех данных
-    all_data = processor.get_all_data()
-    print("Все данные:", all_data) 
+    #all_data = processor.get_all_data()
+    #print("Все данные:", all_data) 
