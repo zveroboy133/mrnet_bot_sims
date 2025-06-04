@@ -5,6 +5,7 @@ from google.auth.transport.requests import Request
 import os.path
 import pandas as pd
 from typing import List, Dict, Optional, Union
+from tabulate import tabulate
 
 class GoogleSheetsProcessor:
     def __init__(self, credentials_file: str = 'client_secret.json'):
@@ -75,7 +76,6 @@ class GoogleSheetsProcessor:
             List[Dict]: Список словарей с найденными записями
         """
         try:
-            #headers = ["1"	"2 Оператор"	"3 Дата прихода сим"	"4 ЛК"	"5 Мобильный номер (MSISDN)"	"ICCID"	"Дата активации на Госуслугах"	"Тип Симкарты на Госуслугах"	"Тип модемов"	"Адрес установки"	"Получена"	"Активирована"	"Дата возврата симкарты"	"Тариф"	"Трафик"	Абон плата	Состояние симкарт	Контрагент	Устройство	Состояние ( Адрес)	Где симка физически	Комментарий	ДО какого блок	Устройство в котором была ранее	Дата отправки новому клиенту	Предыдущая стоимость	дата возврата	от кого вернулась симкарта	из какого устройства	"дата возврата"	"от кого вернулась симкарта"	"из какого устройства"	"дата возврата"	"от кого вернулась симкарта"	"из какого устройства"]
             data = self.worksheet.get_all_records()
             results = []
             
@@ -154,9 +154,24 @@ if __name__ == "__main__":
     #    print("Найдена запись:", result)
     
     # Пример поиска по имени
-    results = processor.search_by_name("vkusvill-211")
+    results = processor.search_by_name("taber-trade-004")
     if results:
-        print("Найдены записи:", results)
+        print("\nНайденные записи:")
+        table_data = []
+        headers = ["Оператор", "ICCID", "Трафик/Тариф", "Состояние симкарт", "Устройство"]
+        
+        for record in results:
+            traffic = record.get('Трафик', '')
+            row = [
+                record.get('2 Оператор', 'Н/Д'),
+                record.get('ICCID', 'Н/Д'),
+                traffic if traffic else record.get('Тариф', 'Н/Д'),
+                record.get('Состояние симкарт', 'Н/Д'),
+                record.get('Устройство', 'Н/Д')
+            ]
+            table_data.append(row)
+        
+        print(tabulate(table_data, headers=headers, tablefmt="grid"))
     
     # Пример получения всех данных
     #all_data = processor.get_all_data()
