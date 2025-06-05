@@ -3,7 +3,7 @@ from sim_card_processor import process_sim_numbers
 
 reader = easyocr.Reader(["en"], verbose=False)
 #result = reader.readtext("photo_2025-05-30_21-16-36.jpg")
-result = reader.readtext("7_photo_2025-06-03_22-18-24.jpg", allowlist='1234567890МмТтСсБбИиЛлАаЙйНнЕеГгФфОо')
+result = reader.readtext("12_photo_2025-06-05_22-56-38.jpg", allowlist='1234567890')
 
 sim_numbers = []
 current_number = ""

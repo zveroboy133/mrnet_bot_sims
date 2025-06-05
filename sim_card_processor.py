@@ -15,7 +15,21 @@ class SimCard:
             return "МТС"
         return "Неизвестный оператор"
 
+    def _validate_number_length(self):
+        expected_lengths = {
+            "Билайн": 18,
+            "МТС": 19,
+            "Мегафон": 17,
+            "Теле2": 19
+        }
+        
+        if self.operator in expected_lengths:
+            expected_length = expected_lengths[self.operator]
+            if len(self.number) > expected_length:
+                self.number = self.number[:expected_length]
+
     def _process_number(self):
+        self._validate_number_length()
         if self.operator == "Мегафон" and self.number.endswith("464"):
             self.number = self.number[:-3]
 
