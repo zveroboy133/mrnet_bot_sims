@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  find-sims-app:
+    build: .
+    container_name: find-sims-app
+    volumes:
+      # Монтируем директорию с данными для сохранения состояния
+      - ./data:/app/data
+      - ./easyocr_models:/app/easyocr_models
+      - ./json:/app/json
+      - ./os:/app/os
+      - ./requests:/app/requests
+      - ./processing_steps:/app/processing_steps
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # Если у вас есть веб-интерфейс
+    command: python main.py 

@@ -1,0 +1,61 @@
+# Pachca API Documentation
+
+## Endpoints
+- [Пачка Audit Events API](https://crm.pachca.com/dev/audit-events.md): Audit events API Пачки предоставляет командам безопасности доступ к логам о критически важных событиях в мессенджере.
+- [Архивация чата](https://crm.pachca.com/dev/chats/archive.md): Метод для отправки чата в архив.
+- [Информация о чате](https://crm.pachca.com/dev/chats/get.md): Метод для получения информации о чате.
+- [Список чатов](https://crm.pachca.com/dev/chats/list.md): Метод для получения списка чатов по заданным параметрам.
+- [Новый чат](https://crm.pachca.com/dev/chats/new.md): Метод для создания нового чата.
+- [Разархивация чата](https://crm.pachca.com/dev/chats/unarchive.md): Метод для возвращения чата из архива.
+- [Обновление чата](https://crm.pachca.com/dev/chats/update.md): Метод для обновления параметров чата.
+- [Экспорт сообщений](https://crm.pachca.com/dev/common/export.md): Экспорт сообщений — это архив c файлами в формате JSON, где собраны все сообщения из всех чатов, которые были созданы в вашем пространстве.
+- [Список дополнительных полей](https://crm.pachca.com/dev/common/fields.md): Метод для получения актуального списка дополнительных полей участников и напоминаний в вашей компании.
+- [Загрузка файлов](https://crm.pachca.com/dev/common/files.md): Для того, чтобы прикрепить файл к сообщению или к какой-то другой сущности в других методах API, вам необходимо сначала загрузить его на сервер, используя для этого уникальный набор параметров, а затем сформировать ссылку на загруженный файл.
+- [Ошибки и лимиты](https://crm.pachca.com/dev/getting-started/errors.md): Мы используем обычные коды ответов HTTP для обозначения результата выполнения запроса.
+- [Обзор](https://crm.pachca.com/dev/getting-started/overview.md): Администрирование состава участников пространства и их профилей через API · Интеграции на основе API для создания чатов и отправки сообщений в указанные чаты · Входящие вебхуки для упрощенной отправки
+- [Запросы и ответы](https://crm.pachca.com/dev/getting-started/requests-and-responses.md): Для работы с методами API вам необходимо иметь действующий access_token .
+- [Последние обновления](https://crm.pachca.com/dev/getting-started/updates.md): Документация по API Пачки.
+- [Исходящий Webhook](https://crm.pachca.com/dev/getting-started/webhooks.md): Исходящие вебхуки позволяют вам получать информацию о событиях в вашем пространстве в реальном времени.
+- [Удаление тега](https://crm.pachca.com/dev/group_tags/delete.md): Метод для удаления тега.
+- [Информация о теге](https://crm.pachca.com/dev/group_tags/get.md): Метод для получения информации о теге.
+- [Список тегов сотрудников](https://crm.pachca.com/dev/group_tags/list.md): Метод для получения актуального списка тегов сотрудников.
+- [Новый тег](https://crm.pachca.com/dev/group_tags/new.md): Метод для создания нового тега.
+- [Редактирование тега](https://crm.pachca.com/dev/group_tags/update.md): Метод для редактирования тега.
+- [Список сотрудников тега](https://crm.pachca.com/dev/group_tags/users.md): Метод для получения актуального списка сотрудников тега.
+- [Обзор](https://crm.pachca.com/dev/index.md): Администрирование состава участников пространства и их профилей через API · Интеграции на основе API для создания чатов и отправки сообщений в указанные чаты · Входящие вебхуки для упрощенной отправки
+- [Исключение тега](https://crm.pachca.com/dev/members/tags/delete.md): Метод для исключения тега из состава участников беседы или канала.
+- [Добавление тегов](https://crm.pachca.com/dev/members/tags/new.md): Метод для добавления тегов в состав участников беседы или канала.
+- [Исключение пользователя](https://crm.pachca.com/dev/members/users/delete.md): Метод для исключения пользователя из состава участников беседы или канала.
+- [Выход из беседы или канала](https://crm.pachca.com/dev/members/users/leave.md): Метод для самостоятельного выхода из беседы или канала.
+- [Список участников чата](https://crm.pachca.com/dev/members/users/list.md): Метод для получения актуального списка участников чата.
+- [Добавление пользователей](https://crm.pachca.com/dev/members/users/new.md): Метод для добавления пользователей в состав участников беседы или канала.
+- [Редактирование роли](https://crm.pachca.com/dev/members/users/update.md): Метод для редактирования роли пользователя или бота в беседе или канале.
+- [Удаление сообщения](https://crm.pachca.com/dev/messages/delete.md): Метод для удаления сообщения.
+- [Информация о сообщении](https://crm.pachca.com/dev/messages/get.md): Метод для получения информации о сообщении.
+- [Unfurl (разворачивание ссылок)](https://crm.pachca.com/dev/messages/link_previews.md): Метод для создания предпросмотров ссылок в сообщениях.
+- [Список сообщений чата](https://crm.pachca.com/dev/messages/list.md): Метод для получения списка сообщений бесед, каналов, тредов и личных сообщений.
+- [Новое сообщение](https://crm.pachca.com/dev/messages/new.md): Метод для отправки сообщения в беседу или канал, личного сообщения пользователю или комментария в тред.
+- [Открепление сообщения](https://crm.pachca.com/dev/messages/pin/delete.md): Метод для открепления сообщения из чата.
+- [Закрепление сообщения](https://crm.pachca.com/dev/messages/pin/new.md): Метод для закрепления сообщения в чате.
+- [Редактирование сообщения](https://crm.pachca.com/dev/messages/update.md): Метод для редактирования сообщения или комментария.
+- [Информация о профиле](https://crm.pachca.com/dev/profile/get.md): Метод для получения информации о своем профиле.
+- [Удаление статуса](https://crm.pachca.com/dev/profile/status/delete.md): Метод для удаления своего статуса.
+- [Текущий статус](https://crm.pachca.com/dev/profile/status/get.md): Метод для получения информации о своем статусе.
+- [Новый статус](https://crm.pachca.com/dev/profile/status/put.md): Метод для установки себе нового статуса.
+- [Удаление реакции](https://crm.pachca.com/dev/reactions/delete.md): Метод для удаления реакции на сообщение.
+- [Список реакций](https://crm.pachca.com/dev/reactions/list.md): Метод для получения актуального списка реакций на сообщение.
+- [Добавление реакции](https://crm.pachca.com/dev/reactions/new.md): Метод для добавления реакции на сообщение.
+- [Список прочитавших сообщение](https://crm.pachca.com/dev/read_members/list.md): Метод для получения актуального списка пользователей, прочитавших сообщение.
+- [Новое напоминание](https://crm.pachca.com/dev/tasks/new.md): Метод для создания нового напоминания.
+- [Информация о треде](https://crm.pachca.com/dev/threads/get.md): Метод для получения информации о треде.
+- [Новый тред](https://crm.pachca.com/dev/threads/new.md): Метод для создания нового треда к сообщению.
+- [Удаление сотрудника](https://crm.pachca.com/dev/users/delete.md): Метод для удаления сотрудника.
+- [Информация о сотруднике](https://crm.pachca.com/dev/users/get.md): Метод для получения информации о сотруднике.
+- [Список сотрудников](https://crm.pachca.com/dev/users/list.md): Метод для получения актуального списка сотрудников вашей компании.
+- [Новый сотрудник](https://crm.pachca.com/dev/users/new.md): Метод для создания нового сотрудника в вашей компании.
+- [Редактирование сотрудника](https://crm.pachca.com/dev/users/update.md): Метод для редактирования сотрудника.
+
+## Optional
+
+- [Website](https://pachca.com/)
+- [Get Help](mailto:team@pachca.com)
