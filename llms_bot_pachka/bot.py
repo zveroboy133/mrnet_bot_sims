@@ -46,7 +46,7 @@ class PachkaBot:
         Обрабатывает команду и отправляет результат
         """
         try:
-            if command == "start":
+            if command == "/start":
                 welcome_message = """Привет! Я бот для работы с Pachka API.
                 
 Доступные команды:
@@ -70,17 +70,24 @@ class PachkaBot:
         """
         Обрабатывает входящее webhook-событие
         """
+        print(f"Обрабатываю событие: {event_data}")
+        
         if event_data.get("type") != "message" or event_data.get("event") != "new":
+            print("Событие не является новым сообщением")
             return
 
         content = event_data.get("content", "")
         chat_id = event_data.get("chat_id")
         
+        print(f"Содержимое: '{content}', chat_id: {chat_id}")
+        
         if not content.startswith("/"):
+            print("Сообщение не является командой")
             return
 
         # Убираем слеш из начала команды
         command = content[1:]
+        print(f"Обрабатываю команду: {command}")
         self.process_command(chat_id, command)
 
 # Создаем экземпляр бота
@@ -96,6 +103,7 @@ def webhook():
     Обработчик входящих webhook-запросов
     """
     if request.method == 'POST':
+        print(f"Получен webhook-запрос: {request.json}")
         event_data = request.json
         bot.handle_webhook_event(event_data)
         return jsonify({"status": "ok"})
