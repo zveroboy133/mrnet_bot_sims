@@ -90,7 +90,7 @@ def test_direct_message():
     print("💬 Тестирование прямой отправки сообщения...")
     
     # URL для отправки сообщения
-    url = "https://api.pachca.com/api/shared/messages/new"
+    url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
     
     # Получаем токен из переменной окружения
     import os
