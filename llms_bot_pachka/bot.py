@@ -24,11 +24,12 @@ class PachkaBot:
     def __init__(self, token: str):
         self.token = token
         self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
+        self.api_base_url = "https://api.pachca.com/api/shared"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         logger.info("Бот инициализирован")
 
-    def send_webhook_message(self, message: str) -> bool:
+    def send_webhook_message(self, message: str, chat_id: str = None) -> bool:
         """
         Отправляет сообщение через webhook с задержкой
         """
@@ -40,45 +41,76 @@ class PachkaBot:
             logger.info(f"Ожидание {delay:.1f} секунд перед отправкой сообщения")
             time.sleep(delay)
         
-        data = {
-            "message": message
-        }
-        
-        logger.info(f"Отправка webhook сообщения: {message}")
-        
-        try:
-            response = requests.post(self.webhook_url, json=data, timeout=10)
-            self.last_message_time = time.time()
-            logger.info(f"Webhook ответ: {response.status_code}")
+        # Если указан chat_id, используем API для отправки в конкретный чат
+        if chat_id:
+            headers = {
+                "Authorization": f"Bearer {self.token}",
+                "Content-Type": "application/json"
+            }
             
-            if response.status_code == 200:
-                logger.info("Webhook сообщение отправлено успешно")
-                return True
-            elif response.status_code == 429:
-                logger.warning("Достигнут лимит запросов (429), ожидание 5 секунд")
-                time.sleep(5)
-                # Повторная попытка
-                response = requests.post(self.webhook_url, json=data, timeout=10)
+            data = {
+                "chat_id": chat_id,
+                "text": message
+            }
+            
+            logger.info(f"Отправка сообщения в чат {chat_id}: {message}")
+            
+            try:
+                response = requests.post(self.webhook_url, headers=headers, json=data, timeout=10)
                 self.last_message_time = time.time()
+                logger.info(f"API ответ: {response.status_code}")
+                
                 if response.status_code == 200:
-                    logger.info("Webhook сообщение отправлено успешно после повтора")
+                    logger.info("Сообщение отправлено успешно в чат")
                     return True
                 else:
-                    logger.error(f"Ошибка webhook после повтора: {response.status_code}")
+                    logger.error(f"Ошибка API: {response.status_code} - {response.text}")
                     return False
-            else:
-                logger.error(f"Ошибка webhook: {response.status_code} - {response.text}")
+                    
+            except Exception as e:
+                logger.error(f"Исключение API: {e}")
                 return False
+        else:
+            # Используем webhook для отправки в общий канал
+            data = {
+                "message": message
+            }
+            
+            logger.info(f"Отправка webhook сообщения: {message}")
+            
+            try:
+                response = requests.post(self.webhook_url, json=data, timeout=10)
+                self.last_message_time = time.time()
+                logger.info(f"Webhook ответ: {response.status_code}")
                 
-        except Exception as e:
-            logger.error(f"Исключение webhook: {e}")
-            return False
+                if response.status_code == 200:
+                    logger.info("Webhook сообщение отправлено успешно")
+                    return True
+                elif response.status_code == 429:
+                    logger.warning("Достигнут лимит запросов (429), ожидание 5 секунд")
+                    time.sleep(5)
+                    # Повторная попытка
+                    response = requests.post(self.webhook_url, json=data, timeout=10)
+                    self.last_message_time = time.time()
+                    if response.status_code == 200:
+                        logger.info("Webhook сообщение отправлено успешно после повтора")
+                        return True
+                    else:
+                        logger.error(f"Ошибка webhook после повтора: {response.status_code}")
+                        return False
+                else:
+                    logger.error(f"Ошибка webhook: {response.status_code} - {response.text}")
+                    return False
+                    
+            except Exception as e:
+                logger.error(f"Исключение webhook: {e}")
+                return False
 
-    def process_command(self, command: str) -> None:
+    def process_command(self, command: str, chat_id: str = None) -> None:
         """
         Обрабатывает команду и отправляет результат через webhook
         """
-        logger.info(f"Обработка команды: '{command}'")
+        logger.info(f"Обработка команды: '{command}' в чате {chat_id}")
         
         try:
             # Проверяем команду /start (слеш уже убран)
@@ -93,7 +125,7 @@ class PachkaBot:
 /new разработка чата"""
                 
                 logger.info("Отправка приветственного сообщения")
-                if self.send_webhook_message(welcome_message):
+                if self.send_webhook_message(welcome_message, chat_id):
                     logger.info("Приветственное сообщение отправлено")
                 else:
                     logger.error("Ошибка отправки приветственного сообщения")
@@ -103,24 +135,24 @@ class PachkaBot:
                 text = command[4:].strip()  # Убираем "new " из начала
                 if text:
                     logger.info(f"Отправка нового текста через webhook: {text}")
-                    if self.send_webhook_message(text):
-                        self.send_webhook_message(f"Текст '{text}' успешно отправлен через webhook")
+                    if self.send_webhook_message(text, chat_id):
+                        self.send_webhook_message(f"Текст '{text}' успешно отправлен через webhook", chat_id)
                     else:
-                        self.send_webhook_message("Ошибка при отправке текста через webhook")
+                        self.send_webhook_message("Ошибка при отправке текста через webhook", chat_id)
                 else:
-                    self.send_webhook_message("Пожалуйста, укажите текст после команды /new")
+                    self.send_webhook_message("Пожалуйста, укажите текст после команды /new", chat_id)
                     
             else:
                 # Отправляем команду через webhook
                 logger.info(f"Отправка команды через webhook: {command}")
-                if self.send_webhook_message(command):
-                    self.send_webhook_message("Команда успешно отправлена")
+                if self.send_webhook_message(command, chat_id):
+                    self.send_webhook_message("Команда успешно отправлена", chat_id)
                 else:
-                    self.send_webhook_message("Ошибка при отправке команды")
+                    self.send_webhook_message("Ошибка при отправке команды", chat_id)
             
         except Exception as e:
             logger.error(f"Ошибка обработки команды: {e}")
-            self.send_webhook_message(f"Произошла ошибка: {str(e)}")
+            self.send_webhook_message(f"Произошла ошибка: {str(e)}", chat_id)
 
     def handle_webhook_event(self, event_data: Dict[str, Any]) -> None:
         """
@@ -138,8 +170,9 @@ class PachkaBot:
             return
 
         content = event_data.get("content", "")
+        chat_id = event_data.get("chat_id")
         
-        logger.info(f"Содержимое: '{content}'")
+        logger.info(f"Содержимое: '{content}', chat_id: {chat_id}")
         
         if not content:
             logger.info("Пустое содержимое сообщения")
@@ -152,8 +185,8 @@ class PachkaBot:
 
         # Убираем слеш из начала команды
         command = content[1:].strip()
-        logger.info(f"Обрабатываю команду: '{command}'")
-        self.process_command(command)
+        logger.info(f"Обрабатываю команду: '{command}' в чате {chat_id}")
+        self.process_command(command, chat_id)
 
 # Создаем экземпляр бота
 token = os.getenv("PACHKA_TOKEN")
