@@ -57,13 +57,26 @@ class PachkaBot:
             logger.info(f"Отправка сообщения в чат {chat_id}: {message}")
             
             try:
-                response = requests.post(self.webhook_url, headers=headers, json=data, timeout=10)
+                # Используем правильный API endpoint для отправки сообщений
+                response = requests.post(f"{self.api_base_url}/messages", headers=headers, json=data, timeout=10)
                 self.last_message_time = time.time()
                 logger.info(f"API ответ: {response.status_code}")
                 
                 if response.status_code == 200:
                     logger.info("Сообщение отправлено успешно в чат")
                     return True
+                elif response.status_code == 429:
+                    logger.warning("Достигнут лимит запросов (429), ожидание 5 секунд")
+                    time.sleep(5)
+                    # Повторная попытка
+                    response = requests.post(f"{self.api_base_url}/messages", headers=headers, json=data, timeout=10)
+                    self.last_message_time = time.time()
+                    if response.status_code == 200:
+                        logger.info("Сообщение отправлено успешно в чат после повтора")
+                        return True
+                    else:
+                        logger.error(f"Ошибка API после повтора: {response.status_code} - {response.text}")
+                        return False
                 else:
                     logger.error(f"Ошибка API: {response.status_code} - {response.text}")
                     return False
