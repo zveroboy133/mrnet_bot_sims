@@ -25,7 +25,7 @@ class PachkaBot:
     def __init__(self, token: str):
         self.token = token
         self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
-        self.api_base_url = "https://api.pachca.com/api/shared/v1"
+        self.api_base_url = "https://api.pachca.com/api/shared"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         logger.info("Бот инициализирован")
