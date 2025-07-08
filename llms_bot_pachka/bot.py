@@ -7,6 +7,10 @@ import sys
 from typing import Dict, Any
 from datetime import datetime
 from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из файла .env
+load_dotenv()
 
 # Настройка кодировки для корректного отображения русских символов
 if sys.stdout.encoding != 'utf-8':
