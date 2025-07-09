@@ -283,8 +283,8 @@ def main():
         logger.error("Error sending test message")
     
     # Запускаем Flask-сервер для обработки входящих webhook-запросов
-    logger.info("Starting Flask server on 91.196.4.149:5000")
-    app.run(host='91.196.4.149', port=5000, debug=False)
+    logger.info("Starting Flask server on 91.217.77.71:5000")
+    app.run(host='91.217.77.71', port=5000, debug=False)
     
 if __name__ == "__main__":
     main() 
