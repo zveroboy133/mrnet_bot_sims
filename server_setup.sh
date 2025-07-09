@@ -190,15 +190,32 @@ setup_env_variables() {
                         echo 'Файл client_secret.json создан из примера'
                     fi
                     
+                    # Создаем файл .env с токеном Pachka
+                    echo 'Создаем файл .env с токеном Pachka...'
+                    cat > .env << 'EOF'
+# Переменные окружения для бота Pachka
+# Создано автоматически $(date)
+
+# Токен для работы с API Pachka
+# Получите токен в настройках бота в Pachka: Автоматизации -> API
+PACHKA_TOKEN=your_pachka_token_here
+
+# Дополнительные настройки (опционально)
+DEBUG=false
+LOG_LEVEL=INFO
+EOF
+                    
+                    echo 'Файл .env создан с шаблоном токена'
+                    echo '⚠️  Не забудьте заменить your_pachka_token_here на реальный токен!'
+                    
                     echo 'Переменные окружения настроены'
-                    echo '⚠️  Не забудьте отредактировать файлы .env и client_secret.json!'
                 else
                     echo 'Проект не найден. Сначала клонируйте проект.'
                 fi
             "
             
             log_success "Переменные окружения настроены"
-            log_warning "⚠️  Не забудьте отредактировать файлы .env и client_secret.json!"
+            log_warning "⚠️  Не забудьте отредактировать файл .env и заменить токен!"
         else
             log_error "Не удалось определить пользователя"
         fi
@@ -377,7 +394,7 @@ show_final_instructions() {
     echo "2. Перейдите в проект: cd /home/$(cat /tmp/current_user.txt)/find_sims-main"
     echo "3. Активируйте виртуальное окружение: source find_sims_env/bin/activate"
     echo "4. Настройте переменные окружения:"
-    echo "   - Отредактируйте файл .env (токен Pachka)"
+    echo "   - Запустите: ./setup_pachka_token.sh (для токена Pachka)"
     echo "   - Отредактируйте client_secret.json (Google API)"
     echo "5. Запустите приложение: python main.py"
     echo
