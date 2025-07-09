@@ -41,7 +41,7 @@ diagnose_system() {
     
     # Проверяем наличие основных команд
     echo "Проверка команд:"
-    for cmd in usermod groups id; do
+    for cmd in usermod groups id visudo; do
         if command -v $cmd &> /dev/null; then
             echo "  ✅ $cmd: $(which $cmd)"
         elif command -v /usr/sbin/$cmd &> /dev/null; then
@@ -148,21 +148,59 @@ setup_sudoers() {
     # Проверяем, есть ли уже настройки для группы sudo
     if grep -q "^%sudo" /etc/sudoers; then
         log_warning "Группа sudo уже настроена в sudoers"
+        log_info "Текущая строка sudoers для группы sudo:"
+        grep "^%sudo" /etc/sudoers
     else
         log_info "Добавляем группу sudo в sudoers..."
         echo "%sudo ALL=(ALL:ALL) ALL" >> /etc/sudoers
         log_success "Группа sudo добавлена в sudoers"
+        log_info "Добавленная строка: %sudo ALL=(ALL:ALL) ALL"
     fi
     
     # Проверяем конфигурацию
     log_info "Проверяем конфигурацию sudoers..."
-    if visudo -c; then
-        log_success "Конфигурация sudoers корректна"
+    
+    # Пробуем разные способы проверки sudoers
+    if command -v visudo &> /dev/null; then
+        if visudo -c; then
+            log_success "Конфигурация sudoers корректна (проверено через visudo)"
+        else
+            log_error "Ошибка в конфигурации sudoers"
+            log_warning "Восстанавливаем резервную копию..."
+            cp /etc/sudoers.backup.$(date +%Y%m%d) /etc/sudoers
+            exit 1
+        fi
+    elif command -v /usr/sbin/visudo &> /dev/null; then
+        if /usr/sbin/visudo -c; then
+            log_success "Конфигурация sudoers корректна (проверено через /usr/sbin/visudo)"
+        else
+            log_error "Ошибка в конфигурации sudoers"
+            log_warning "Восстанавливаем резервную копию..."
+            cp /etc/sudoers.backup.$(date +%Y%m%d) /etc/sudoers
+            exit 1
+        fi
+    elif command -v /sbin/visudo &> /dev/null; then
+        if /sbin/visudo -c; then
+            log_success "Конфигурация sudoers корректна (проверено через /sbin/visudo)"
+        else
+            log_error "Ошибка в конфигурации sudoers"
+            log_warning "Восстанавливаем резервную копию..."
+            cp /etc/sudoers.backup.$(date +%Y%m%d) /etc/sudoers
+            exit 1
+        fi
     else
-        log_error "Ошибка в конфигурации sudoers"
-        log_warning "Восстанавливаем резервную копию..."
-        cp /etc/sudoers.backup.$(date +%Y%m%d) /etc/sudoers
-        exit 1
+        log_warning "Команда visudo не найдена, пропускаем проверку конфигурации"
+        log_info "Проверяем содержимое файла sudoers вручную..."
+        
+        # Простая проверка синтаксиса
+        if grep -q "^%sudo" /etc/sudoers; then
+            log_success "Группа sudo найдена в sudoers"
+        else
+            log_error "Группа sudo не найдена в sudoers"
+            log_warning "Восстанавливаем резервную копию..."
+            cp /etc/sudoers.backup.$(date +%Y%m%d) /etc/sudoers
+            exit 1
+        fi
     fi
 }
 
