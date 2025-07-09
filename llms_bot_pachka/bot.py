@@ -34,7 +34,7 @@ class PachkaBot:
     def __init__(self, token: str):
         self.token = token
         self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
-        self.api_base_url = "https://api.pachca.com/api/shared"
+        self.api_base_url = "https://api.pachca.com/api"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         logger.info("Bot initialized")
@@ -51,52 +51,48 @@ class PachkaBot:
             logger.info(f"Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
-        # Если указан chat_id, используем webhook URL с токеном для отправки в конкретный чат
+        # Если указан chat_id, используем webhook для отправки в конкретный чат
         if chat_id:
-            headers = {
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json"
-            }
-            
             data = {
-                "chat_id": chat_id,
-                "content": message
+                "text": message,
+                "chat_id": str(chat_id)
             }
             
             logger.info(f"Sending message to chat {chat_id}: {message}")
             
             try:
-                # Используем webhook URL с токеном для отправки в конкретный чат
-                response = requests.post(self.webhook_url, headers=headers, json=data, timeout=10)
+                # Используем webhook для отправки в конкретный чат
+                response = requests.post(self.webhook_url, json=data, timeout=10)
                 self.last_message_time = time.time()
-                logger.info(f"Webhook with token response: {response.status_code}")
+                logger.info(f"Webhook response: {response.status_code}")
                 
                 if response.status_code == 200:
                     logger.info("Message sent successfully to chat")
+                    logger.info(f"Response content: {response.text}")
                     return True
                 elif response.status_code == 429:
                     logger.warning("Rate limit reached (429), waiting 5 seconds")
                     time.sleep(5)
                     # Повторная попытка
-                    response = requests.post(self.webhook_url, headers=headers, json=data, timeout=10)
+                    response = requests.post(self.webhook_url, json=data, timeout=10)
                     self.last_message_time = time.time()
                     if response.status_code == 200:
                         logger.info("Message sent successfully to chat after retry")
                         return True
                     else:
-                        logger.error(f"Webhook with token error after retry: {response.status_code} - {response.text}")
+                        logger.error(f"Webhook error after retry: {response.status_code} - {response.text}")
                         return False
                 else:
-                    logger.error(f"Webhook with token error: {response.status_code} - {response.text}")
+                    logger.error(f"Webhook error: {response.status_code} - {response.text}")
                     return False
                     
             except Exception as e:
-                logger.error(f"Webhook with token exception: {e}")
+                logger.error(f"Webhook exception: {e}")
                 return False
         else:
             # Используем webhook для отправки в общий канал
             data = {
-                "message": message
+                "text": message
             }
             
             logger.info(f"Sending webhook message: {message}")
@@ -108,6 +104,7 @@ class PachkaBot:
                 
                 if response.status_code == 200:
                     logger.info("Webhook message sent successfully")
+                    logger.info(f"Response content: {response.text}")
                     return True
                 elif response.status_code == 429:
                     logger.warning("Rate limit reached (429), waiting 5 seconds")
