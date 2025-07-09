@@ -30,6 +30,31 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Функция для диагностики системы
+diagnose_system() {
+    log_info "Диагностика системы..."
+    
+    echo "ОС: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+    echo "Архитектура: $(uname -m)"
+    echo "PATH: $PATH"
+    echo "Корневая директория: $(pwd)"
+    
+    # Проверяем наличие основных команд
+    echo "Проверка команд:"
+    for cmd in usermod groups id; do
+        if command -v $cmd &> /dev/null; then
+            echo "  ✅ $cmd: $(which $cmd)"
+        elif command -v /usr/sbin/$cmd &> /dev/null; then
+            echo "  ✅ $cmd: /usr/sbin/$cmd"
+        elif command -v /sbin/$cmd &> /dev/null; then
+            echo "  ✅ $cmd: /sbin/$cmd"
+        else
+            echo "  ❌ $cmd: не найден"
+        fi
+    done
+    echo
+}
+
 # Функция для проверки, запущен ли скрипт с правами root
 check_root() {
     if [ "$EUID" -ne 0 ]; then
@@ -72,13 +97,44 @@ setup_user_sudo() {
     
     # Добавляем пользователя в группу sudo
     log_info "Добавляем пользователя titkov в группу sudo..."
-    usermod -aG sudo titkov
+    
+    # Пробуем разные варианты команды usermod
+    if command -v /usr/sbin/usermod &> /dev/null; then
+        /usr/sbin/usermod -aG sudo titkov
+    elif command -v /sbin/usermod &> /dev/null; then
+        /sbin/usermod -aG sudo titkov
+    elif command -v usermod &> /dev/null; then
+        usermod -aG sudo titkov
+    else
+        log_error "Команда usermod не найдена"
+        echo "Попробуем альтернативный способ..."
+        
+        # Альтернативный способ через редактирование /etc/group
+        if [ -f /etc/group ]; then
+            log_info "Редактируем /etc/group напрямую..."
+            # Создаем резервную копию
+            cp /etc/group /etc/group.backup.$(date +%Y%m%d)
+            
+            # Добавляем пользователя в группу sudo
+            sed -i 's/^sudo:.*/&,titkov/' /etc/group
+            
+            log_success "Пользователь titkov добавлен в группу sudo через /etc/group"
+        else
+            log_error "Файл /etc/group не найден"
+            exit 1
+        fi
+    fi
     
     log_success "Пользователь titkov добавлен в группу sudo"
     
     # Проверяем настройки
     log_info "Проверяем настройки..."
-    groups titkov
+    if command -v groups &> /dev/null; then
+        groups titkov
+    else
+        echo "Группы пользователя titkov:"
+        grep "^sudo:" /etc/group
+    fi
 }
 
 # Функция для настройки sudoers
@@ -153,6 +209,9 @@ main() {
     
     # Проверяем права root
     check_root
+    
+    # Диагностика системы
+    diagnose_system
     
     # Выполняем шаги настройки
     install_sudo
