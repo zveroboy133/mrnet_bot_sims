@@ -1,0 +1,32 @@
+stages:
+  - deploy
+
+deploy_to_server:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client rsync
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    # Подключаемся к серверу и выполняем обновление
+    - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && git pull origin main"
+    - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && chmod +x *.sh"
+    - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && ./universal_deploy.sh"
+  only:
+    - main
+  environment:
+    name: production
+    url: $SERVER_URL
+  variables:
+    # Эти переменные нужно настроить в GitLab CI/CD Settings -> Variables
+    # SSH_PRIVATE_KEY: приватный SSH ключ для подключения к серверу
+    # SSH_KNOWN_HOSTS: результат команды ssh-keyscan -H your-server.com
+    # SSH_USER: имя пользователя на сервере
+    # SSH_HOST: IP адрес или домен сервера
+    # PROJECT_PATH: путь к проекту на сервере
+    # SERVER_URL: URL вашего сервера 
