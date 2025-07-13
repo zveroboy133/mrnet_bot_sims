@@ -8,6 +8,7 @@ from typing import Dict, Any
 from datetime import datetime
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from google_sheets_processor import GoogleSheetsProcessor
 
 # Загружаем переменные окружения из файла .env
 load_dotenv()
@@ -38,6 +39,15 @@ class PachkaBot:
         self.api_base_url = "https://api.pachca.com/api"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
+        
+        # Инициализируем Google Sheets процессор
+        try:
+            self.sheets_processor = GoogleSheetsProcessor()
+            logger.info("Google Sheets processor initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize Google Sheets processor: {e}")
+            self.sheets_processor = None
+        
         logger.info("Bot initialized")
 
     def send_webhook_message(self, message: str, chat_id: str = None) -> bool:
@@ -168,40 +178,89 @@ class PachkaBot:
             logger.error(f"Webhook only exception: {e}")
             return False
 
-    def check_sim_activity(self, chat_id: str = None) -> None:
+    def check_sim_activity(self, chat_id: str = None, router_name: str = None) -> None:
         """
-        Проверяет активность симкарт и отправляет отчет
+        Проверяет активность симкарт для конкретного устройства и отправляет отчет
         """
-        logger.info("Starting SIM card activity check")
+        logger.info(f"Starting SIM card activity check for router: {router_name}")
         
         try:
             # Отправляем сообщение о начале проверки
-            self.send_webhook_message("🔍 Начинаю проверку активности симкарт...", chat_id)
+            self.send_webhook_message(f"🔍 Начинаю проверку активности симкарт для устройства: {router_name}...", chat_id)
             
-            # Здесь будет логика проверки симкарт
-            # Пока что отправляем тестовое сообщение
-            time.sleep(2)  # Имитируем время проверки
+            # Проверяем, инициализирован ли Google Sheets процессор
+            if not self.sheets_processor:
+                error_msg = "❌ Google Sheets процессор не инициализирован. Проверьте настройки."
+                self.send_webhook_message(error_msg, chat_id)
+                return
             
-            # Тестовый отчет
-            report = """📱 Отчет о проверке активности симкарт:
-
-✅ Симкарта 1: Активна (Баланс: 150₽)
-✅ Симкарта 2: Активна (Баланс: 75₽)
-⚠️ Симкарта 3: Низкий баланс (Баланс: 5₽)
-❌ Симкарта 4: Неактивна (Баланс: 0₽)
-
-📊 Итого: 3 активных, 1 неактивная
-💰 Общий баланс: 230₽
-
-Проверка завершена в: {time}""".format(time=datetime.now().strftime("%H:%M:%S"))
+            # Ищем данные в Google Sheets
+            logger.info(f"Searching for router: {router_name} in Google Sheets")
+            results = self.sheets_processor.search_by_name(router_name)
             
+            if not results:
+                # Устройство не найдено
+                not_found_msg = f"❌ Устройство '{router_name}' не найдено в базе данных симкарт."
+                self.send_webhook_message(not_found_msg, chat_id)
+                return
+            
+            # Формируем отчет на основе найденных данных
+            logger.info(f"Found {len(results)} records for router: {router_name}")
+            
+            # Подсчитываем статистику
+            total_sims = len(results)
+            active_sims = 0
+            inactive_sims = 0
+            low_balance_sims = 0
+            
+            report_lines = [f"📱 Отчет о симкартах для устройства: {router_name}\n"]
+            
+            for i, record in enumerate(results, 1):
+                operator = record.get('2 Оператор', 'Н/Д')
+                iccid = record.get('ICCID', 'Н/Д')
+                status = record.get('Состояние симкарт', 'Н/Д')
+                traffic = record.get('Трафик', '')
+                tariff = record.get('Тариф', '')
+                device = record.get('Устройство', 'Н/Д')
+                
+                # Определяем статус симкарты
+                if 'актив' in str(status).lower():
+                    status_emoji = "✅"
+                    active_sims += 1
+                elif 'неактив' in str(status).lower() or 'блок' in str(status).lower():
+                    status_emoji = "❌"
+                    inactive_sims += 1
+                else:
+                    status_emoji = "⚠️"
+                    low_balance_sims += 1
+                
+                # Формируем строку для симкарты
+                sim_info = f"{status_emoji} Симкарта {i}: {status_emoji} {status}"
+                if traffic:
+                    sim_info += f" (Трафик: {traffic})"
+                elif tariff:
+                    sim_info += f" (Тариф: {tariff})"
+                sim_info += f" | Оператор: {operator}"
+                
+                report_lines.append(sim_info)
+            
+            # Добавляем статистику
+            report_lines.append(f"\n📊 Статистика:")
+            report_lines.append(f"✅ Активных: {active_sims}")
+            report_lines.append(f"❌ Неактивных: {inactive_sims}")
+            report_lines.append(f"⚠️ С проблемами: {low_balance_sims}")
+            report_lines.append(f"📱 Всего симкарт: {total_sims}")
+            report_lines.append(f"\n⏰ Проверка завершена в: {datetime.now().strftime('%H:%M:%S')}")
+            
+            # Отправляем отчет
+            report = "\n".join(report_lines)
             self.send_webhook_message(report, chat_id)
-            logger.info("SIM activity check completed")
+            logger.info(f"SIM activity check completed for router: {router_name}")
             
         except Exception as e:
-            error_message = f"❌ Ошибка при проверке симкарт: {str(e)}"
+            error_message = f"❌ Ошибка при проверке симкарт для устройства {router_name}: {str(e)}"
             self.send_webhook_message(error_message, chat_id)
-            logger.error(f"Error in check_sim_activity: {e}")
+            logger.error(f"Error in check_sim_activity for router {router_name}: {e}")
 
     def process_command(self, command: str, chat_id: str = None) -> None:
         """
@@ -217,11 +276,11 @@ class PachkaBot:
 Доступные команды:
 /start - показать это сообщение
 /new [текст] - отправить новый текст через webhook
-/active - проверить активность симкарт
+/active [устройство] - проверить активность симкарт для устройства
 
 Пример использования:
 /new разработка чата
-/active"""
+/active router1"""
                 
                 logger.info("Sending welcome message")
                 # Отправляем в тот же чат, откуда пришла команда
@@ -242,10 +301,14 @@ class PachkaBot:
                 else:
                     self.send_webhook_message("Please specify text after /new command", chat_id)
                     
-            elif command.lower() == "active":
-                # Команда /active - проверка активности симкарт
-                logger.info("Processing /active command - checking SIM card activity")
-                self.check_sim_activity(chat_id)
+            elif command.lower().startswith("active "):
+                # Команда /active router_name - проверка активности симкарт для конкретного устройства
+                router_name = command[7:].strip()  # Убираем "active " из начала
+                if router_name:
+                    logger.info(f"Processing /active command for router: {router_name}")
+                    self.check_sim_activity(chat_id, router_name)
+                else:
+                    self.send_webhook_message("Пожалуйста, укажите название устройства после /active. Пример: /active router1", chat_id)
                     
             else:
                 # Отправляем команду через webhook
