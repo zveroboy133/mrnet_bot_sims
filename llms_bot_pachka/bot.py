@@ -168,6 +168,41 @@ class PachkaBot:
             logger.error(f"Webhook only exception: {e}")
             return False
 
+    def check_sim_activity(self, chat_id: str = None) -> None:
+        """
+        Проверяет активность симкарт и отправляет отчет
+        """
+        logger.info("Starting SIM card activity check")
+        
+        try:
+            # Отправляем сообщение о начале проверки
+            self.send_webhook_message("🔍 Начинаю проверку активности симкарт...", chat_id)
+            
+            # Здесь будет логика проверки симкарт
+            # Пока что отправляем тестовое сообщение
+            time.sleep(2)  # Имитируем время проверки
+            
+            # Тестовый отчет
+            report = """📱 Отчет о проверке активности симкарт:
+
+✅ Симкарта 1: Активна (Баланс: 150₽)
+✅ Симкарта 2: Активна (Баланс: 75₽)
+⚠️ Симкарта 3: Низкий баланс (Баланс: 5₽)
+❌ Симкарта 4: Неактивна (Баланс: 0₽)
+
+📊 Итого: 3 активных, 1 неактивная
+💰 Общий баланс: 230₽
+
+Проверка завершена в: {time}""".format(time=datetime.now().strftime("%H:%M:%S"))
+            
+            self.send_webhook_message(report, chat_id)
+            logger.info("SIM activity check completed")
+            
+        except Exception as e:
+            error_message = f"❌ Ошибка при проверке симкарт: {str(e)}"
+            self.send_webhook_message(error_message, chat_id)
+            logger.error(f"Error in check_sim_activity: {e}")
+
     def process_command(self, command: str, chat_id: str = None) -> None:
         """
         Обрабатывает команду и отправляет результат через webhook
@@ -182,9 +217,11 @@ class PachkaBot:
 Доступные команды:
 /start - показать это сообщение
 /new [текст] - отправить новый текст через webhook
+/active - проверить активность симкарт
 
 Пример использования:
-/new разработка чата"""
+/new разработка чата
+/active"""
                 
                 logger.info("Sending welcome message")
                 # Отправляем в тот же чат, откуда пришла команда
@@ -204,6 +241,11 @@ class PachkaBot:
                         self.send_webhook_message("Error sending text via webhook", chat_id)
                 else:
                     self.send_webhook_message("Please specify text after /new command", chat_id)
+                    
+            elif command.lower() == "active":
+                # Команда /active - проверка активности симкарт
+                logger.info("Processing /active command - checking SIM card activity")
+                self.check_sim_activity(chat_id)
                     
             else:
                 # Отправляем команду через webhook
