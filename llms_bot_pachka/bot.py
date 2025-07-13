@@ -110,11 +110,14 @@ class PachkaBot:
             }
             
             logger.info(f"Sending webhook message: {message}")
+            logger.info(f"Webhook URL: {self.webhook_url}")
+            logger.info(f"Data: {data}")
             
             try:
                 response = requests.post(self.webhook_url, json=data, timeout=10)
                 self.last_message_time = time.time()
                 logger.info(f"Webhook response: {response.status_code}")
+                logger.info(f"Response headers: {response.headers}")
                 
                 if response.status_code == 200:
                     logger.info("Webhook message sent successfully")
