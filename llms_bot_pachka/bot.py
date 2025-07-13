@@ -38,7 +38,7 @@ class PachkaBot:
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         # Webhook токен для отправки в общий канал
-        self.webhook_token = "pachca_wh_7XgzWy3fEnBzyi7wX9khCXBWFNTnjvTetLu7t7TwzfY5DgjgvESMX1LXlswKdpGj"
+        self.webhook_token = os.getenv("PACHKA_WEBHOOK_TOKEN", "pachca_wh_7XgzWy3fEnBzyi7wX9khCXBWFNTnjvTetLu7t7TwzfY5DgjgvESMX1LXlswKdpGj")
         logger.info("Bot initialized")
 
     def send_webhook_message(self, message: str, chat_id: str = None) -> bool:
@@ -188,8 +188,8 @@ class PachkaBot:
 /new разработка чата"""
                 
                 logger.info("Sending welcome message")
-                # Отправляем в общий канал (без chat_id), как тестовое сообщение
-                if self.send_webhook_message(welcome_message):
+                # Отправляем в тот же чат, откуда пришла команда
+                if self.send_webhook_message(welcome_message, chat_id):
                     logger.info("Welcome message sent")
                 else:
                     logger.error("Error sending welcome message")
@@ -199,20 +199,20 @@ class PachkaBot:
                 text = command[4:].strip()  # Убираем "new " из начала
                 if text:
                     logger.info(f"Sending new text via webhook: {text}")
-                    if self.send_webhook_message(text):
-                        self.send_webhook_message(f"Text '{text}' sent successfully via webhook")
+                    if self.send_webhook_message(text, chat_id):
+                        self.send_webhook_message(f"Text '{text}' sent successfully via webhook", chat_id)
                     else:
-                        self.send_webhook_message("Error sending text via webhook")
+                        self.send_webhook_message("Error sending text via webhook", chat_id)
                 else:
-                    self.send_webhook_message("Please specify text after /new command")
+                    self.send_webhook_message("Please specify text after /new command", chat_id)
                     
             else:
                 # Отправляем команду через webhook
                 logger.info(f"Sending command via webhook: {command}")
-                if self.send_webhook_message(command):
-                    self.send_webhook_message("Command sent successfully")
+                if self.send_webhook_message(command, chat_id):
+                    self.send_webhook_message("Command sent successfully", chat_id)
                 else:
-                    self.send_webhook_message("Error sending command")
+                    self.send_webhook_message("Error sending command", chat_id)
             
         except Exception as e:
             logger.error(f"Error processing command: {e}")
