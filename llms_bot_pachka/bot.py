@@ -8,6 +8,9 @@ from typing import Dict, Any
 from datetime import datetime
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from google_sheets_processor import GoogleSheetsProcessor
 
 # Загружаем переменные окружения из файла .env
