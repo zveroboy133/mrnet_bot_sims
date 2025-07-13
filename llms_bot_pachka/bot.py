@@ -52,60 +52,50 @@ class PachkaBot:
             logger.info(f"Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
-        # Если указан chat_id, используем API для отправки в конкретный чат
+        # Если указан chat_id, используем webhook с параметрами для конкретного чата
         if chat_id:
-            # Проверяем, есть ли API токен
-            api_token = os.getenv("PACHKA_API_TOKEN")
-            if not api_token:
-                logger.error("PACHKA_API_TOKEN not set, cannot send message to specific chat")
-                return False
-                
-            headers = {
-                "Authorization": f"Bearer {api_token}",
-                "Content-Type": "application/json",
-                "User-Id": "584210"
-            }
-            
+            # Используем webhook для отправки в конкретный чат
             data = {
-                "text": message,
+                "message": message,
                 "chat_id": chat_id
             }
             
-            api_url = f"{self.api_base_url}/messages"
-            
             logger.info(f"Sending message to chat {chat_id}: {message}")
-            logger.info(f"API URL: {api_url}")
-            logger.info(f"Headers: {headers}")
+            logger.info(f"Webhook URL: {self.webhook_url}")
             logger.info(f"Data: {data}")
             
             try:
-                # Используем API для отправки в конкретный чат
-                response = requests.post(api_url, headers=headers, json=data, timeout=10)
+                headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": "PachkaBot/1.0"
+                }
+                response = requests.post(self.webhook_url, json=data, headers=headers, timeout=10)
                 self.last_message_time = time.time()
-                logger.info(f"API response: {response.status_code}")
+                logger.info(f"Webhook response: {response.status_code}")
+                logger.info(f"Response headers: {response.headers}")
                 
                 if response.status_code == 200:
-                    logger.info("Message sent successfully to chat")
+                    logger.info("Webhook message sent successfully to chat")
                     logger.info(f"Response content: {response.text}")
                     return True
                 elif response.status_code == 429:
                     logger.warning("Rate limit reached (429), waiting 5 seconds")
                     time.sleep(5)
                     # Повторная попытка
-                    response = requests.post(api_url, headers=headers, json=data, timeout=10)
+                    response = requests.post(self.webhook_url, json=data, headers=headers, timeout=10)
                     self.last_message_time = time.time()
                     if response.status_code == 200:
-                        logger.info("Message sent successfully to chat after retry")
+                        logger.info("Webhook message sent successfully to chat after retry")
                         return True
                     else:
-                        logger.error(f"API error after retry: {response.status_code} - {response.text}")
+                        logger.error(f"Webhook error after retry: {response.status_code}")
                         return False
                 else:
-                    logger.error(f"API error: {response.status_code} - {response.text}")
+                    logger.error(f"Webhook error: {response.status_code} - {response.text}")
                     return False
                     
             except Exception as e:
-                logger.error(f"API exception: {e}")
+                logger.error(f"Webhook exception: {e}")
                 return False
         else:
             # Используем webhook для отправки в общий канал
