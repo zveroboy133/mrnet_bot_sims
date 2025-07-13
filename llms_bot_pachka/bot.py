@@ -33,12 +33,12 @@ app = Flask(__name__)
 class PachkaBot:
     def __init__(self, token: str):
         self.token = token
-        self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
+        # Используем webhook токен в URL
+        webhook_token = os.getenv("PACHKA_WEBHOOK_TOKEN", "pachca_wh_7XgzWy3fEnBzyi7wX9khCXBWFNTnjvTetLu7t7TwzfY5DgjgvESMX1LXlswKdpGj")
+        self.webhook_url = f"https://api.pachca.com/webhooks/{webhook_token}"
         self.api_base_url = "https://api.pachca.com/api"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
-        # Webhook токен для отправки в общий канал
-        self.webhook_token = os.getenv("PACHKA_WEBHOOK_TOKEN", "pachca_wh_7XgzWy3fEnBzyi7wX9khCXBWFNTnjvTetLu7t7TwzfY5DgjgvESMX1LXlswKdpGj")
         logger.info("Bot initialized")
 
     def send_webhook_message(self, message: str, chat_id: str = None) -> bool:
@@ -106,7 +106,8 @@ class PachkaBot:
         else:
             # Используем webhook для отправки в общий канал
             data = {
-                "text": message
+                "text": message,
+                "channel": "general"  # Указываем канал
             }
             
             logger.info(f"Sending webhook message: {message}")
