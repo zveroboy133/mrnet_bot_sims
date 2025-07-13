@@ -62,16 +62,21 @@ class PachkaBot:
                 
             headers = {
                 "Authorization": f"Bearer {api_token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "User-Id": "584210"
             }
             
             data = {
-                "text": message
+                "text": message,
+                "chat_id": chat_id
             }
             
-            api_url = f"{self.api_base_url}/shared/chats/{chat_id}/messages"
+            api_url = f"{self.api_base_url}/messages"
             
             logger.info(f"Sending message to chat {chat_id}: {message}")
+            logger.info(f"API URL: {api_url}")
+            logger.info(f"Headers: {headers}")
+            logger.info(f"Data: {data}")
             
             try:
                 # Используем API для отправки в конкретный чат
@@ -104,8 +109,8 @@ class PachkaBot:
                 return False
         else:
             # Используем webhook для отправки в общий канал
+            # Согласно документации Pachka: { "message": "Текст сообщения" }
             data = {
-                "text": message,
                 "message": message
             }
             
