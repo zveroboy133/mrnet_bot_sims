@@ -2,9 +2,14 @@ numpy
 Pillow
 easyocr>=1.7.0
 pandas
+pytz
+python-dateutil
 requests
 python-dotenv
 gspread
+google-auth
 google-auth-oauthlib
 google-auth-httplib2
+requests-oauthlib
+tabulate
 flask

@@ -307,6 +307,15 @@ class PachkaBot:
             elif command.lower().startswith("active "):
                 # Команда /active router_name - проверка активности симкарт для конкретного устройства
                 router_name = command[7:].strip()  # Убираем "active " из начала
+                
+                # Извлекаем название устройства из markdown разметки [name](url)
+                if router_name.startswith('[') and '](' in router_name:
+                    # Извлекаем текст между [ и ]
+                    start = router_name.find('[') + 1
+                    end = router_name.find(']')
+                    if start > 0 and end > start:
+                        router_name = router_name[start:end]
+                
                 if router_name:
                     logger.info(f"Processing /active command for router: {router_name}")
                     self.check_sim_activity(chat_id, router_name)
