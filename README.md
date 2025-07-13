@@ -1,56 +1,52 @@
 # Find SIMs
 
-Проект для распознавания номеров SIM-карт на изображениях с использованием компьютерного зрения и OCR.
+## Настройка Google API
 
-## Описание
+Для работы с Google Sheets необходимо настроить OAuth 2.0:
 
-Этот проект использует OpenCV и EasyOCR для:
-1. Предобработки изображений
-2. Поиска областей с текстом
-3. Распознавания цифр в найденных областях
+1. Создайте проект в [Google Cloud Console](https://console.cloud.google.com/)
+2. Включите Google Sheets API и Google Drive API
+3. Создайте учетные данные OAuth 2.0:
+   - Тип приложения: Desktop app
+   - Скачайте JSON-файл с учетными данными
+   - Переименуйте файл в `client_secret.json`
+   - Поместите файл в корневую директорию проекта
 
 ## Установка
 
-1. Клонируйте репозиторий:
-```bash
-git clone https://github.com/zveroboy133/find_sims.git
-cd find_sims
-```
-
-2. Создайте виртуальное окружение и активируйте его:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # для Linux/Mac
-# или
-.venv\Scripts\activate  # для Windows
-```
-
-3. Установите зависимости:
+1. Установите зависимости:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Использование
-
-1. Поместите изображение с SIM-картой в корневую директорию проекта
-2. Запустите скрипт:
+2. Скопируйте пример конфигурации:
 ```bash
-python main_2.py
+cp client_secret.example.json client_secret.json
 ```
 
-3. Результаты обработки будут сохранены в директории `processing_steps`
+3. Замените значения в `client_secret.json` на ваши учетные данные из Google Cloud Console
 
-## Структура проекта
+## Использование
 
-- `main_2.py` - основной скрипт для обработки изображений
-- `requirements.txt` - зависимости проекта
-- `processing_steps/` - директория для сохранения промежуточных результатов
-- `easyocr_models/` - директория для моделей EasyOCR
+```python
+from google_sheets_processor import GoogleSheetsProcessor
 
-## Требования
+# Создание экземпляра процессора
+processor = GoogleSheetsProcessor()
 
-- Python 3.8+
-- OpenCV
-- EasyOCR
-- NumPy
-- Pillow
+# Поиск по телефону
+result = processor.search_by_phone("+79001234567")
+if result:
+    print("Найдена запись:", result)
+
+# Поиск по имени
+results = processor.search_by_name("Иван")
+if results:
+    print("Найдены записи:", results)
+```
+
+При первом запуске откроется браузер для авторизации в Google.
+
+tmp_easyocr.py
+- читает фото симкарт
+- на выходе отдает необработанные номера ICCID

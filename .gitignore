@@ -186,3 +186,11 @@ easyocr_models/
 *.jpg
 *.png
 *.jpeg
+
+# Google API credentials
+client_secret.json
+token.json
+credentials.json
+
+# Environment variables
+.env.local
