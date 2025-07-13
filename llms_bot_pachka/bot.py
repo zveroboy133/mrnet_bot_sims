@@ -33,9 +33,8 @@ app = Flask(__name__)
 class PachkaBot:
     def __init__(self, token: str):
         self.token = token
-        # Используем webhook токен в URL
-        webhook_token = os.getenv("PACHKA_WEBHOOK_TOKEN", "pachca_wh_7XgzWy3fEnBzyi7wX9khCXBWFNTnjvTetLu7t7TwzfY5DgjgvESMX1LXlswKdpGj")
-        self.webhook_url = f"https://api.pachca.com/webhooks/{webhook_token}"
+        # Используем исходный webhook URL
+        self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
         self.api_base_url = "https://api.pachca.com/api"
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
@@ -107,7 +106,7 @@ class PachkaBot:
             # Используем webhook для отправки в общий канал
             data = {
                 "text": message,
-                "channel": "general"  # Указываем канал
+                "message": message
             }
             
             logger.info(f"Sending webhook message: {message}")
@@ -115,7 +114,11 @@ class PachkaBot:
             logger.info(f"Data: {data}")
             
             try:
-                response = requests.post(self.webhook_url, json=data, timeout=10)
+                headers = {
+                    "Content-Type": "application/json",
+                    "User-Agent": "PachkaBot/1.0"
+                }
+                response = requests.post(self.webhook_url, json=data, headers=headers, timeout=10)
                 self.last_message_time = time.time()
                 logger.info(f"Webhook response: {response.status_code}")
                 logger.info(f"Response headers: {response.headers}")
