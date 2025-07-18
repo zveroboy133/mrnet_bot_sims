@@ -31,15 +31,15 @@ fi
 # Выбираем метод развертывания
 if [ "$DOCKER_AVAILABLE" = true ]; then
     echo "🐳 Используем Docker для развертывания..."
-    ./deploy.sh
+    ./scripts/deploy.sh
 elif [ "$VENV_AVAILABLE" = true ]; then
     echo "🐍 Используем виртуальное окружение для развертывания..."
-    ./update_code.sh
+    ./scripts/update_code.sh
 else
     echo "❌ Нет доступных методов развертывания!"
     echo ""
     echo "📦 Установите Docker:"
-    echo "   sudo ./install_docker.sh"
+    echo "   sudo ./scripts/install_docker.sh"
     echo ""
     echo "🐍 Или установите Python3:"
     echo "   sudo apt update && sudo apt install python3 python3-venv python3-pip"

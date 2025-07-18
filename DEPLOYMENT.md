@@ -11,7 +11,7 @@ cd /path/to/find_sims-main
 ./check_server.sh
 
 # 4. Запустите универсальный скрипт развертывания
-./universal_deploy.sh
+./scripts/universal_deploy.sh
 ```
 
 ## Вариант 1: Docker (Рекомендуемый)
@@ -96,7 +96,7 @@ sudo apt install python3 python3-venv python3-pip
 - `processing_steps/` - папка с шагами обработки
 
 ### Скрипты развертывания:
-- `universal_deploy.sh` - универсальный скрипт
+- `scripts/universal_deploy.sh` - универсальный скрипт
 - `check_server.sh` - проверка компонентов
 - `install_docker.sh` - установка Docker
 - `deploy.sh` - развертывание через Docker
@@ -184,7 +184,7 @@ while true; do
     if [ -f "uploads/new_version.zip" ]; then
         unzip -o uploads/new_version.zip -d .
         rm uploads/new_version.zip
-        ./universal_deploy.sh
+        ./scripts/universal_deploy.sh
     fi
     sleep 30
 done
@@ -195,14 +195,14 @@ done
 1. **Первый раз на сервере:**
    ```bash
    ./check_server.sh
-   ./universal_deploy.sh
+   ./scripts/universal_deploy.sh
    ```
 
 2. **При обновлении кода:**
    ```bash
    # Загрузите новый zip-архив
    # Распакуйте его
-   ./universal_deploy.sh
+   ./scripts/universal_deploy.sh
    ```
 
 3. **Для мониторинга:**

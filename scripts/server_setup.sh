@@ -34,7 +34,7 @@ log_error() {
 check_sudo() {
     if [ "$EUID" -ne 0 ]; then
         log_error "Этот скрипт должен быть запущен с правами администратора"
-        echo "Используйте: sudo ./server_setup.sh"
+        echo "Используйте: sudo ./scripts/server_setup.sh"
         exit 1
     fi
 }
@@ -376,7 +376,7 @@ clone_project() {
             log_info "Следующие шаги:"
             echo "1. Переключитесь на пользователя: su - $username"
             echo "2. Перейдите в проект: cd $project_dir"
-            echo "3. Запустите: ./universal_deploy.sh"
+            echo "3. Запустите: ./scripts/universal_deploy.sh"
         else
             log_error "Не удалось определить пользователя"
         fi
@@ -394,14 +394,14 @@ show_final_instructions() {
     echo "2. Перейдите в проект: cd /home/$(cat /tmp/current_user.txt)/find_sims-main"
     echo "3. Активируйте виртуальное окружение: source find_sims_env/bin/activate"
     echo "4. Настройте переменные окружения:"
-    echo "   - Запустите: ./setup_pachka_token.sh (для токена Pachka)"
+    echo "   - Запустите: ./scripts/setup_pachka_token.sh (для токена Pachka)"
     echo "   - Отредактируйте client_secret.json (Google API)"
     echo "5. Запустите приложение: python main.py"
     echo
     echo "🔧 Полезные команды:"
-    echo "- Проверка статуса: ./check_server.sh"
-    echo "- Обновление кода: ./update_code.sh"
-    echo "- Настройка окружения: ./setup_env.sh"
+    echo "- Проверка статуса: ./scripts/check_server.sh"
+    echo "- Обновление кода: ./scripts/update_code.sh"
+    echo "- Настройка окружения: ./scripts/setup_env.sh"
     echo
     echo "📚 Документация:"
     echo "- README.md - общая информация"

@@ -107,7 +107,7 @@ def update_code():
         return False
     
     # Запускаем деплой
-    success, output = run_command("./universal_deploy.sh")
+    success, output = run_command("./scripts/universal_deploy.sh")
     if not success:
         return False
     

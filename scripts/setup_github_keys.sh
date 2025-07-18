@@ -200,7 +200,7 @@ show_instructions() {
     echo "   - Нажмите 'New SSH key'"
     echo "   - Вставьте ключ и сохраните"
     echo "3. Протестируйте подключение:"
-    echo "   ./setup_github_keys.sh"
+    echo "   ./scripts/setup_github_keys.sh"
     echo
     echo "🔧 Полезные команды:"
     echo "- Клонирование репозитория: git clone git@github.com:username/repo.git"

@@ -1,0 +1,17 @@
+[Unit]
+Description=Pachka Bot Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/c%3A/devs/find_sims-main
+Environment=PATH=/c%3A/devs/find_sims-main/find_sims_env/bin
+ExecStart=/c%3A/devs/find_sims-main/find_sims_env/bin/python /c%3A/devs/find_sims-main/start_bot.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target 

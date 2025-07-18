@@ -446,7 +446,16 @@ def main():
     
     # Запускаем Flask-сервер для обработки входящих webhook-запросов
     logger.info("Starting Flask server on 91.217.77.71:5000")
-    app.run(host='91.217.77.71', port=5000, debug=False)
+    
+    try:
+        # Пытаемся использовать waitress для продакшена
+        from waitress import serve
+        logger.info("Using waitress server for production")
+        serve(app, host='91.217.77.71', port=5000, threads=4)
+    except ImportError:
+        logger.warning("waitress not available, using Flask development server")
+        # Fallback на Flask development server
+        app.run(host='91.217.77.71', port=5000, debug=False, threaded=True)
     
 if __name__ == "__main__":
     main() 

@@ -16,7 +16,7 @@ deploy_to_server:
     # Подключаемся к серверу и выполняем обновление
     - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && git pull origin main"
     - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && chmod +x *.sh"
-    - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && ./universal_deploy.sh"
+    - ssh $SSH_USER@$SSH_HOST "cd $PROJECT_PATH && ./scripts/universal_deploy.sh"
   only:
     - main
   environment:

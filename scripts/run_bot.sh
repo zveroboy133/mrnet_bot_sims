@@ -12,7 +12,7 @@ if [ -f "$BOT_PID_FILE" ]; then
     PID=$(cat "$BOT_PID_FILE")
     if ps -p $PID > /dev/null 2>&1; then
         echo "⚠️ Бот уже запущен с PID: $PID"
-        echo "🛑 Для остановки: ./stop_bot.sh"
+        echo "🛑 Для остановки: ./scripts/stop_bot.sh"
         exit 1
     else
         echo "🧹 Удаляем старый PID файл"
@@ -38,8 +38,8 @@ echo $BOT_PID > "$BOT_PID_FILE"
 
 echo "✅ Бот запущен с PID: $BOT_PID"
 echo "📊 Логи: tail -f $BOT_LOG_FILE"
-echo "🛑 Остановка: ./stop_bot.sh"
-echo "🔍 Статус: ./check_bot.sh"
+echo "🛑 Остановка: ./scripts/stop_bot.sh"
+echo "🔍 Статус: ./scripts/check_bot.sh"
 
 # Ждем немного и проверяем, что бот запустился
 sleep 3

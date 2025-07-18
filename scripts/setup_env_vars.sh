@@ -62,7 +62,7 @@ fi
 
 echo ""
 echo "🚀 Теперь можно запустить бота:"
-echo "   ./run_bot.sh"
+echo "   ./scripts/run_bot.sh"
 echo ""
 echo "🔍 Для проверки статуса:"
-echo "   ./check_server.sh" 
+echo "   ./scripts/check_server.sh" 
