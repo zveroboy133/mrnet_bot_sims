@@ -68,8 +68,9 @@ class PachkaBot:
         # Если указан chat_id, используем webhook с параметрами для конкретного чата
         if chat_id:
             # Используем webhook для отправки в конкретный чат
+            # Согласно документации Pachka для отправки в конкретный чат
             data = {
-                "message": message,
+                "text": message,
                 "chat_id": chat_id
             }
             
@@ -112,9 +113,9 @@ class PachkaBot:
                 return False
         else:
             # Используем webhook для отправки в общий канал
-            # Согласно документации Pachka: { "message": "Текст сообщения" }
+            # Согласно документации Pachka: { "text": "Текст сообщения" }
             data = {
-                "message": message
+                "text": message
             }
             
             logger.info(f"Sending webhook message: {message}")
@@ -270,6 +271,7 @@ class PachkaBot:
         Обрабатывает команду и отправляет результат через webhook
         """
         logger.info(f"Processing command: '{command}' in chat {chat_id}")
+        logger.info(f"Command type: {type(command)}, chat_id type: {type(chat_id)}")
         
         try:
             # Проверяем команду /start (слеш уже убран)
@@ -353,6 +355,7 @@ class PachkaBot:
         chat_id = event_data.get("chat_id")
         
         logger.info(f"Content: '{content}', chat_id: {chat_id}")
+        logger.info(f"Full event structure: type={event_data.get('type')}, event={event_data.get('event')}, chat_id={chat_id}")
         
         if not content:
             logger.info("Empty message content")
@@ -366,6 +369,11 @@ class PachkaBot:
         # Убираем слеш из начала команды
         command = content[1:].strip()
         logger.info(f"Processing command: '{command}' in chat {chat_id}")
+        
+        # Проверяем, что chat_id не пустой
+        if not chat_id:
+            logger.warning("chat_id is empty, sending to general channel")
+        
         self.process_command(command, chat_id)
 
 # Создаем экземпляр бота
