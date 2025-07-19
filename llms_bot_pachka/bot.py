@@ -43,6 +43,11 @@ class PachkaBot:
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         
+        # API токен для отправки в конкретные чаты
+        self.api_token = os.getenv("PACHKA_API_TOKEN")
+        if not self.api_token:
+            logger.warning("PACHKA_API_TOKEN not set, will use webhook for all messages")
+        
         # Инициализируем Google Sheets процессор
         try:
             self.sheets_processor = GoogleSheetsProcessor()
@@ -52,6 +57,69 @@ class PachkaBot:
             self.sheets_processor = None
         
         logger.info("Bot initialized")
+
+    def send_api_message(self, message: str, chat_id: str) -> bool:
+        """
+        Отправляет сообщение через API в конкретный чат
+        """
+        if not self.api_token:
+            logger.error("API token not available for sending to specific chat")
+            return False
+            
+        # Добавляем задержку между сообщениями
+        current_time = time.time()
+        time_since_last = current_time - self.last_message_time
+        if time_since_last < self.min_delay:
+            delay = self.min_delay - time_since_last
+            logger.info(f"Waiting {delay:.1f} seconds before sending message")
+            time.sleep(delay)
+        
+        url = f"{self.api_base_url}/chat.message"
+        # Для API Pachka используется формат с "text"
+        data = {
+            "text": message,
+            "chat_id": chat_id
+        }
+        
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_token}",
+            "User-Agent": "PachkaBot/1.0"
+        }
+        
+        logger.info(f"Sending API message to chat {chat_id}: {message}")
+        logger.info(f"API URL: {url}")
+        logger.info(f"Data: {data}")
+        
+        try:
+            response = requests.post(url, json=data, headers=headers, timeout=10)
+            self.last_message_time = time.time()
+            logger.info(f"API response: {response.status_code}")
+            logger.info(f"Response headers: {response.headers}")
+            
+            if response.status_code == 200:
+                logger.info("API message sent successfully")
+                logger.info(f"Response content: {response.text}")
+                return True
+            elif response.status_code == 429:
+                logger.warning("Rate limit reached (429), waiting 5 seconds")
+                time.sleep(5)
+                # Повторная попытка
+                response = requests.post(url, json=data, headers=headers, timeout=10)
+                self.last_message_time = time.time()
+                if response.status_code == 200:
+                    logger.info("API message sent successfully after retry")
+                    return True
+                else:
+                    logger.error(f"API error after retry: {response.status_code}")
+                    return False
+            else:
+                logger.error(f"API error: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"API exception: {e}")
+            return False
 
     def send_webhook_message(self, message: str, chat_id: str = None) -> bool:
         """
@@ -65,57 +133,21 @@ class PachkaBot:
             logger.info(f"Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
-        # Если указан chat_id, используем webhook с параметрами для конкретного чата
+        # Если указан chat_id, используем API для отправки в конкретный чат
         if chat_id:
-            # Используем webhook для отправки в конкретный чат
-            # Согласно документации Pachka для отправки в конкретный чат
-            data = {
-                "text": message,
-                "chat_id": chat_id
-            }
-            
-            logger.info(f"Sending message to chat {chat_id}: {message}")
-            logger.info(f"Webhook URL: {self.webhook_url}")
-            logger.info(f"Data: {data}")
-            
-            try:
-                headers = {
-                    "Content-Type": "application/json",
-                    "User-Agent": "PachkaBot/1.0"
-                }
-                response = requests.post(self.webhook_url, json=data, headers=headers, timeout=10)
-                self.last_message_time = time.time()
-                logger.info(f"Webhook response: {response.status_code}")
-                logger.info(f"Response headers: {response.headers}")
-                
-                if response.status_code == 200:
-                    logger.info("Webhook message sent successfully to chat")
-                    logger.info(f"Response content: {response.text}")
-                    return True
-                elif response.status_code == 429:
-                    logger.warning("Rate limit reached (429), waiting 5 seconds")
-                    time.sleep(5)
-                    # Повторная попытка
-                    response = requests.post(self.webhook_url, json=data, headers=headers, timeout=10)
-                    self.last_message_time = time.time()
-                    if response.status_code == 200:
-                        logger.info("Webhook message sent successfully to chat after retry")
-                        return True
-                    else:
-                        logger.error(f"Webhook error after retry: {response.status_code}")
-                        return False
-                else:
-                    logger.error(f"Webhook error: {response.status_code} - {response.text}")
-                    return False
-                    
-            except Exception as e:
-                logger.error(f"Webhook exception: {e}")
-                return False
+            logger.info(f"Using API to send message to specific chat {chat_id}")
+            if self.api_token:
+                return self.send_api_message(message, chat_id)
+            else:
+                logger.warning("API token not available, falling back to webhook (message will go to general channel)")
+                # Fallback на webhook без chat_id (отправится в общий канал)
+                chat_id = None
         else:
             # Используем webhook для отправки в общий канал
-            # Согласно документации Pachka: { "text": "Текст сообщения" }
+            # ВАЖНО: НИКОГДА НЕ МЕНЯТЬ "message" на "text" - это сломает работу webhook!
+            # Согласно документации Pachka: { "message": "Текст сообщения" }
             data = {
-                "text": message
+                "message": message
             }
             
             logger.info(f"Sending webhook message: {message}")
@@ -160,8 +192,9 @@ class PachkaBot:
         """
         Отправляет сообщение только через webhook (для общих уведомлений)
         """
+        # ВАЖНО: НИКОГДА НЕ МЕНЯТЬ "message" на "text" - это сломает работу webhook!
         data = {
-            "text": message
+            "message": message
         }
         
         logger.info(f"Sending webhook only message: {message}")
