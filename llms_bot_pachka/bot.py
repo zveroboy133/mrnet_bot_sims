@@ -74,12 +74,20 @@ class PachkaBot:
             logger.info(f"Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
+        # Попробуем разные варианты API endpoints
         url = f"{self.api_base_url}/chat.message"
         # Для API Pachka используется формат с "text"
         data = {
             "text": message,
             "chat_id": chat_id
         }
+        
+        # Если первый endpoint не работает, попробуем альтернативный
+        if not self._try_api_request(url, data, headers):
+            url = f"{self.api_base_url}/messages"
+            logger.info(f"Trying alternative API endpoint: {url}")
+            return self._try_api_request(url, data, headers)
+        return True
         
         headers = {
             "Content-Type": "application/json",
@@ -91,6 +99,12 @@ class PachkaBot:
         logger.info(f"API URL: {url}")
         logger.info(f"Data: {data}")
         
+        return self._try_api_request(url, data, headers)
+
+    def _try_api_request(self, url: str, data: dict, headers: dict) -> bool:
+        """
+        Вспомогательный метод для выполнения API запроса
+        """
         try:
             response = requests.post(url, json=data, headers=headers, timeout=10)
             self.last_message_time = time.time()
@@ -137,10 +151,20 @@ class PachkaBot:
         if chat_id:
             logger.info(f"Using API to send message to specific chat {chat_id}")
             if self.api_token:
-                return self.send_api_message(message, chat_id)
+                # Пытаемся отправить через API
+                if self.send_api_message(message, chat_id):
+                    return True
+                else:
+                    logger.warning("API failed, falling back to webhook (message will go to general channel)")
+                    # Fallback на webhook без chat_id (отправится в общий канал)
+                    # Добавляем префикс, чтобы показать, что это ответ на команду из другого чата
+                    message = f"💬 Ответ на команду из чата {chat_id}:\n{message}"
+                    chat_id = None
             else:
                 logger.warning("API token not available, falling back to webhook (message will go to general channel)")
                 # Fallback на webhook без chat_id (отправится в общий канал)
+                # Добавляем префикс, чтобы показать, что это ответ на команду из другого чата
+                message = f"💬 Ответ на команду из чата {chat_id}:\n{message}"
                 chat_id = None
         else:
             # Используем webhook для отправки в общий канал
