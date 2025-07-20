@@ -176,7 +176,10 @@ class PachkaBot:
                 message = f"💬 Ответ на команду из чата {chat_id}:\n{original_message}"
                 chat_id = None
                 logger.info(f"Fallback message prepared (no API token): {message[:100]}...")
-        else:
+        
+        # Отправляем сообщение через webhook (общий канал или после fallback)
+        if not chat_id:
+            logger.info("Sending message via webhook to general channel")
             # Используем webhook для отправки в общий канал
             # ВАЖНО: НИКОГДА НЕ МЕНЯТЬ "message" на "text" - это сломает работу webhook!
             # Согласно документации Pachka: { "message": "Текст сообщения" }
@@ -221,6 +224,9 @@ class PachkaBot:
             except Exception as e:
                 logger.error(f"Webhook exception: {e}")
                 return False
+        else:
+            logger.warning(f"chat_id is still set ({chat_id}), but API is disabled. Message not sent.")
+            return False
 
     def send_webhook_only_message(self, message: str) -> bool:
         """
