@@ -47,6 +47,8 @@ class PachkaBot:
         self.api_token = os.getenv("PACHKA_API_TOKEN")
         if not self.api_token:
             logger.warning("PACHKA_API_TOKEN not set, will use webhook for all messages")
+        else:
+            logger.info(f"PACHKA_API_TOKEN found: {self.api_token[:10]}...")
         
         # Инициализируем Google Sheets процессор
         try:
@@ -96,7 +98,9 @@ class PachkaBot:
         if not self._try_api_request(url, data, headers):
             url = f"{self.api_base_url}/messages"
             logger.info(f"Trying alternative API endpoint: {url}")
-            return self._try_api_request(url, data, headers)
+            if not self._try_api_request(url, data, headers):
+                logger.error("Both API endpoints failed")
+                return False
         return True
 
     def _try_api_request(self, url: str, data: dict, headers: dict) -> bool:
@@ -148,22 +152,30 @@ class PachkaBot:
         # Если указан chat_id, используем API для отправки в конкретный чат
         if chat_id:
             logger.info(f"Using API to send message to specific chat {chat_id}")
-            if self.api_token:
+            # Временно отключаем API для тестирования webhook fallback
+            use_api = False  # Измените на True, когда настроите API токен
+            if use_api and self.api_token:
                 # Пытаемся отправить через API
+                logger.info(f"Attempting to send via API with token: {self.api_token[:10]}...")
                 if self.send_api_message(message, chat_id):
+                    logger.info("API message sent successfully")
                     return True
                 else:
                     logger.warning("API failed, falling back to webhook (message will go to general channel)")
                     # Fallback на webhook без chat_id (отправится в общий канал)
                     # Добавляем префикс, чтобы показать, что это ответ на команду из другого чата
-                    message = f"💬 Ответ на команду из чата {chat_id}:\n{message}"
+                    original_message = message
+                    message = f"💬 Ответ на команду из чата {chat_id}:\n{original_message}"
                     chat_id = None
+                    logger.info(f"Fallback message prepared: {message[:100]}...")
             else:
                 logger.warning("API token not available, falling back to webhook (message will go to general channel)")
                 # Fallback на webhook без chat_id (отправится в общий канал)
                 # Добавляем префикс, чтобы показать, что это ответ на команду из другого чата
-                message = f"💬 Ответ на команду из чата {chat_id}:\n{message}"
+                original_message = message
+                message = f"💬 Ответ на команду из чата {chat_id}:\n{original_message}"
                 chat_id = None
+                logger.info(f"Fallback message prepared (no API token): {message[:100]}...")
         else:
             # Используем webhook для отправки в общий канал
             # ВАЖНО: НИКОГДА НЕ МЕНЯТЬ "message" на "text" - это сломает работу webhook!
