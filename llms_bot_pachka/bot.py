@@ -96,23 +96,17 @@ class PachkaBot:
             }
         }
         
-        logger.info(f"Using correct Pachka API endpoint: {url}")
-        logger.info(f"Using correct data format: {data}")
-        
-        # Выполняем API запрос с правильными параметрами
-        return self._try_api_request(url, data, headers)
-        
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_token}",
             "User-Agent": "PachkaBot/1.0"
         }
         
+        logger.info(f"Using correct Pachka API endpoint: {url}")
+        logger.info(f"Using correct data format: {data}")
         logger.info(f"Sending API message to chat {chat_id}: {message}")
-        logger.info(f"API URL: {url}")
-        logger.info(f"Data: {data}")
         
-        # Выполняем API запрос
+        # Выполняем API запрос с правильными параметрами
         return self._try_api_request(url, data, headers)
 
     def _try_api_request(self, url: str, data: dict, headers: dict) -> bool:
