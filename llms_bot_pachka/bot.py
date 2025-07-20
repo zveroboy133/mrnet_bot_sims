@@ -82,13 +82,6 @@ class PachkaBot:
             "chat_id": chat_id
         }
         
-        # Если первый endpoint не работает, попробуем альтернативный
-        if not self._try_api_request(url, data, headers):
-            url = f"{self.api_base_url}/messages"
-            logger.info(f"Trying alternative API endpoint: {url}")
-            return self._try_api_request(url, data, headers)
-        return True
-        
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_token}",
@@ -99,7 +92,12 @@ class PachkaBot:
         logger.info(f"API URL: {url}")
         logger.info(f"Data: {data}")
         
-        return self._try_api_request(url, data, headers)
+        # Если первый endpoint не работает, попробуем альтернативный
+        if not self._try_api_request(url, data, headers):
+            url = f"{self.api_base_url}/messages"
+            logger.info(f"Trying alternative API endpoint: {url}")
+            return self._try_api_request(url, data, headers)
+        return True
 
     def _try_api_request(self, url: str, data: dict, headers: dict) -> bool:
         """
