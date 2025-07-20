@@ -49,6 +49,13 @@ class PachkaBot:
             logger.warning("PACHKA_API_TOKEN not set, will use webhook for all messages")
         else:
             logger.info(f"PACHKA_API_TOKEN found: {self.api_token[:10]}...")
+            # Проверяем формат токена
+            if self.api_token.startswith("pachca_wh_"):
+                logger.error("PACHKA_API_TOKEN is a webhook token! Need API token starting with 'pachca_' (not 'pachca_wh_')")
+            elif self.api_token.startswith("pachca_"):
+                logger.info("PACHKA_API_TOKEN format is correct")
+            else:
+                logger.warning("PACHKA_API_TOKEN format is unknown")
         
         # Инициализируем Google Sheets процессор
         try:
@@ -76,7 +83,7 @@ class PachkaBot:
             logger.info(f"Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
-        # Попробуем разные варианты API endpoints
+        # Используем правильный API endpoint для Pachka
         url = f"{self.api_base_url}/chat.message"
         # Для API Pachka используется формат с "text"
         data = {
@@ -94,29 +101,36 @@ class PachkaBot:
         logger.info(f"API URL: {url}")
         logger.info(f"Data: {data}")
         
-        # Если первый endpoint не работает, попробуем альтернативный
-        if not self._try_api_request(url, data, headers):
-            url = f"{self.api_base_url}/messages"
-            logger.info(f"Trying alternative API endpoint: {url}")
-            if not self._try_api_request(url, data, headers):
-                logger.error("Both API endpoints failed")
-                return False
-        return True
+        # Выполняем API запрос
+        return self._try_api_request(url, data, headers)
 
     def _try_api_request(self, url: str, data: dict, headers: dict) -> bool:
         """
         Вспомогательный метод для выполнения API запроса
         """
+        logger.info(f"Making API request to: {url}")
+        logger.info(f"Request headers: {headers}")
+        logger.info(f"Request data: {data}")
+        
         try:
             response = requests.post(url, json=data, headers=headers, timeout=10)
             self.last_message_time = time.time()
             logger.info(f"API response: {response.status_code}")
             logger.info(f"Response headers: {response.headers}")
+            logger.info(f"Response content: {response.text}")
             
             if response.status_code == 200:
                 logger.info("API message sent successfully")
-                logger.info(f"Response content: {response.text}")
                 return True
+            elif response.status_code == 401:
+                logger.error("API authentication failed (401) - check API token")
+                return False
+            elif response.status_code == 403:
+                logger.error("API access forbidden (403) - check permissions")
+                return False
+            elif response.status_code == 404:
+                logger.error("API endpoint not found (404) - check URL")
+                return False
             elif response.status_code == 429:
                 logger.warning("Rate limit reached (429), waiting 5 seconds")
                 time.sleep(5)
@@ -152,8 +166,8 @@ class PachkaBot:
         # Если указан chat_id, используем API для отправки в конкретный чат
         if chat_id:
             logger.info(f"Using API to send message to specific chat {chat_id}")
-            # Временно отключаем API для тестирования webhook fallback
-            use_api = False  # Измените на True, когда настроите API токен
+            # Включаем API для отправки в конкретные чаты
+            use_api = True  # API включен для отправки в конкретные чаты
             if use_api and self.api_token:
                 # Пытаемся отправить через API
                 logger.info(f"Attempting to send via API with token: {self.api_token[:10]}...")
