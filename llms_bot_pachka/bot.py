@@ -39,7 +39,13 @@ class PachkaBot:
         self.token = token
         # Используем исходный webhook URL
         self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
-        self.api_base_url = "https://api.pachca.com/api"
+        # Попробуем разные базовые URL для API
+        self.api_base_urls = [
+            "https://api.pachca.com/api",
+            "https://api.pachca.com/v1",
+            "https://api.pachca.com"
+        ]
+        self.api_base_url = self.api_base_urls[0]  # По умолчанию используем первый
         self.last_message_time = 0
         self.min_delay = 2  # Минимальная задержка между сообщениями в секундах
         
@@ -84,12 +90,36 @@ class PachkaBot:
             time.sleep(delay)
         
         # Используем правильный API endpoint для Pachka
-        url = f"{self.api_base_url}/chat.message"
-        # Для API Pachka используется формат с "text"
-        data = {
-            "text": message,
-            "chat_id": chat_id
-        }
+        # Попробуем разные базовые URL и endpoints
+        endpoints_to_try = []
+        for base_url in self.api_base_urls:
+            endpoints_to_try.extend([
+                f"{base_url}/chat.message",
+                f"{base_url}/messages",
+                f"{base_url}/chat/{chat_id}/message",
+                f"{base_url}/message"
+            ])
+        
+        # Попробуем разные форматы данных для API
+        data_formats = [
+            {"text": message, "chat_id": chat_id},
+            {"message": message, "chat_id": chat_id},
+            {"text": message, "room_id": chat_id},
+            {"message": message, "room_id": chat_id}
+        ]
+        
+        # Пробуем каждый endpoint с каждым форматом данных
+        for endpoint in endpoints_to_try:
+            for data_format in data_formats:
+                logger.info(f"Trying API endpoint: {endpoint} with data: {data_format}")
+                if self._try_api_request(endpoint, data_format, headers):
+                    logger.info(f"Success with endpoint: {endpoint} and data format: {data_format}")
+                    return True
+                else:
+                    logger.warning(f"Failed with endpoint: {endpoint} and data format: {data_format}")
+        
+        logger.error("All API endpoints and data formats failed")
+        return False
         
         headers = {
             "Content-Type": "application/json",
