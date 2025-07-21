@@ -489,6 +489,11 @@ def webhook():
     """
     Обработчик входящих webhook-запросов
     """
+    logger.info("=== WEBHOOK ENDPOINT CALLED ===")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request headers: {dict(request.headers)}")
+    logger.info(f"Request URL: {request.url}")
+    
     if request.method == 'POST':
         try:
             event_data = request.json
@@ -498,7 +503,11 @@ def webhook():
                 logger.error("Empty data in webhook")
                 return jsonify({"status": "error", "message": "Empty data"}), 400
                 
+            logger.info(f"Bot object: {bot}")
+            logger.info(f"Bot type: {type(bot)}")
+            
             if bot:
+                logger.info("Bot is initialized, processing event...")
                 bot.handle_webhook_event(event_data)
             else:
                 logger.error("Bot not initialized")
@@ -508,6 +517,9 @@ def webhook():
             
         except Exception as e:
             logger.error(f"Error processing webhook: {e}")
+            logger.error(f"Exception type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return jsonify({"status": "error", "message": str(e)}), 500
             
     return jsonify({"status": "error", "message": "Method not allowed"}), 405
