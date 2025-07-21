@@ -202,7 +202,7 @@ class UniversalPachkaBot:
             try:
                 headers = {
                     "Content-Type": "application/json",
-                    "User-Agent": f"PachkaBot/{self.name}/1.0"
+                    "User-Agent": "PachkaBot/1.0"
                 }
                 response = requests.post(self.webhook_incoming, json=data, headers=headers, timeout=10)
                 self.last_message_time = time.time()
@@ -551,10 +551,14 @@ def main():
         
         # Отправляем тестовое сообщение через webhook
         logger.info("Sending test message...")
-        if bot.send_webhook_message(f"Bot {bot_id} is running and ready to work"):
-            logger.info("Test message sent successfully")
-        else:
-            logger.error("Error sending test message")
+        try:
+            if bot.send_webhook_message(f"Bot {bot_id} is running and ready to work"):
+                logger.info("Test message sent successfully")
+            else:
+                logger.error("Error sending test message")
+        except Exception as e:
+            logger.error(f"Error sending test message: {e}")
+            logger.info("Continuing without test message...")
         
         # Запускаем Flask-сервер для обработки входящих webhook-запросов
         logger.info(f"Starting Flask server on 91.217.77.71:{bot.port}")
