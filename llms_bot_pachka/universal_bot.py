@@ -551,7 +551,7 @@ def main():
         
         # Отправляем тестовое сообщение через webhook
         logger.info("Sending test message...")
-        if bot.send_webhook_message(f"{bot.name} is running and ready to work"):
+        if bot.send_webhook_message(f"Bot {bot_id} is running and ready to work"):
             logger.info("Test message sent successfully")
         else:
             logger.error("Error sending test message")
