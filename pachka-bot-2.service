@@ -5,9 +5,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/c%3A/devs/find_sims-main
-Environment=PATH=/c%3A/devs/find_sims-main/find_sims_env/bin
-ExecStart=/c%3A/devs/find_sims-main/find_sims_env/bin/python /c%3A/devs/find_sims-main/start_bot2.py
+WorkingDirectory=/home/titkov/find_sims
+Environment=PATH=/home/titkov/find_sims/find_sims_env/bin
+ExecStart=/home/titkov/find_sims/find_sims_env/bin/python /home/titkov/find_sims/start_bot2.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
