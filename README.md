@@ -45,6 +45,20 @@ cp client_secret.example.json client_secret.json
    - Создайте учетные данные OAuth 2.0 (Desktop app)
    - Замените содержимое `client_secret.json` на скачанные данные
 
+## Проверка конфигурации
+
+Перед запуском проверьте конфигурацию:
+
+```bash
+python check_config.py
+```
+
+Или используйте встроенную проверку:
+```bash
+python start_bot.py --check
+python start_bot2.py --check
+```
+
 ## Запуск
 
 ### Основной бот:
@@ -54,7 +68,15 @@ python start_bot.py
 
 ### Второй бот (универсальный):
 ```bash
-python start_bot2.py
+python start_bot2.py          # Запуск bot2
+python start_bot2.py bot1     # Запуск bot1 из конфига
+python start_bot2.py bot2     # Запуск bot2 из конфига
+```
+
+### Справка:
+```bash
+python start_bot.py --help    # Справка по основному боту
+python start_bot2.py --help   # Справка по универсальному боту
 ```
 
 ### Через скрипты:
