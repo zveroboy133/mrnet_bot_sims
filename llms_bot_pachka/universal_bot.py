@@ -573,17 +573,18 @@ def main():
             logger.info("Continuing without test message...")
         
         # Запускаем Flask-сервер для обработки входящих webhook-запросов
-        logger.info(f"Starting Flask server on 91.217.77.71:{bot.port}")
+        server_host = os.getenv('SERVER_HOST', '0.0.0.0')
+        logger.info(f"Starting Flask server on {server_host}:{bot.port}")
         
         try:
             # Пытаемся использовать waitress для продакшена
             from waitress import serve
             logger.info("Using waitress server for production")
-            serve(app, host='91.217.77.71', port=bot.port, threads=4)
+            serve(app, host=server_host, port=bot.port, threads=4)
         except ImportError:
             logger.warning("waitress not available, using Flask development server")
             # Fallback на Flask development server
-            app.run(host='91.217.77.71', port=bot.port, debug=False, threaded=True)
+            app.run(host=server_host, port=bot.port, debug=False, threaded=True)
             
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")

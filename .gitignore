@@ -194,3 +194,31 @@ credentials.json
 
 # Environment variables
 .env.local
+.env
+
+# Virtual environment
+find_sims_env/
+
+# Logs
+*.log
+bot.log
+universal_bot.log
+webhook.log
+
+# PID files
+*.pid
+bot.pid
+
+# Service files (могут содержать чувствительные данные)
+*.service
+
+# Конфигурационные файлы с секретами
+bots_config.json
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

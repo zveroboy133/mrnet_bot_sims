@@ -1,0 +1,25 @@
+{
+  "bots": {
+    "bot1": {
+      "name": "Основной бот",
+      "port": 5000,
+      "webhook_incoming": "https://api.pachca.com/webhooks/ВАШ_WEBHOOK_ID_1",
+      "webhook_outgoing": "http://ВАШ_IP_ИЛИ_ДОМЕН:5000/webhook",
+      "signing_secret": "ваш_signing_secret_здесь",
+      "user_id": 0,
+      "access_token": "ваш_access_token_здесь",
+      "service_name": "pachka-bot"
+    },
+    "bot2": {
+      "name": "Второй бот",
+      "port": 5001,
+      "webhook_incoming": "https://api.pachca.com/webhooks/ВАШ_WEBHOOK_ID_2",
+      "webhook_outgoing": "http://ВАШ_IP_ИЛИ_ДОМЕН:5001/webhook",
+      "signing_secret": "ваш_signing_secret_здесь",
+      "user_id": 0,
+      "access_token": "ваш_access_token_здесь",
+      "service_name": "pachka-bot-2"
+    }
+  }
+}
+

@@ -2,6 +2,7 @@ import gspread
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import os
 import os.path
 import pandas as pd
 from typing import List, Dict, Optional, Union
@@ -19,7 +20,8 @@ class GoogleSheetsProcessor:
                       'https://www.googleapis.com/auth/drive']
         self.credentials_file = credentials_file
         self.creds = None
-        self.spreadsheet_id = '1nx2QSynzcvt_gOb8gsC0l6Zs7nb7V_x-19kOLx93-WI'
+        # Получаем ID таблицы из переменной окружения
+        self.spreadsheet_id = os.getenv('GOOGLE_SHEETS_ID', '1nx2QSynzcvt_gOb8gsC0l6Zs7nb7V_x-19kOLx93-WI')
         
         # Проверяем наличие сохраненных учетных данных
         if os.path.exists('token.json'):

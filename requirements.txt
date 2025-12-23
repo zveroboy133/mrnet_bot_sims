@@ -1,6 +1,3 @@
-numpy
-Pillow
-easyocr>=1.7.0
 pandas
 pytz
 python-dateutil

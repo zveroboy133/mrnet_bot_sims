@@ -37,8 +37,8 @@ app = Flask(__name__)
 class PachkaBot:
     def __init__(self, token: str):
         self.token = token
-        # Используем исходный webhook URL
-        self.webhook_url = "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05"
+        # Используем webhook URL из переменной окружения или значение по умолчанию
+        self.webhook_url = os.getenv("PACHKA_WEBHOOK_URL", "https://api.pachca.com/webhooks/01JXFJQRHMZR8ME5KHRY35CR05")
         # Базовый URL для API Pachka
         self.api_base_url = "https://api.pachca.com"
         self.last_message_time = 0
@@ -545,17 +545,19 @@ def main():
         logger.error("Error sending test message")
     
     # Запускаем Flask-сервер для обработки входящих webhook-запросов
-    logger.info("Starting Flask server on 91.217.77.71:5000")
+    server_host = os.getenv('SERVER_HOST', '0.0.0.0')
+    server_port = int(os.getenv('SERVER_PORT', '5000'))
+    logger.info(f"Starting Flask server on {server_host}:{server_port}")
     
     try:
         # Пытаемся использовать waitress для продакшена
         from waitress import serve
         logger.info("Using waitress server for production")
-        serve(app, host='91.217.77.71', port=5000, threads=4)
+        serve(app, host=server_host, port=server_port, threads=4)
     except ImportError:
         logger.warning("waitress not available, using Flask development server")
         # Fallback на Flask development server
-        app.run(host='91.217.77.71', port=5000, debug=False, threaded=True)
+        app.run(host=server_host, port=server_port, debug=False, threaded=True)
     
 if __name__ == "__main__":
     main() 

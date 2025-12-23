@@ -59,7 +59,9 @@ echo "🔍 Статус: ps aux | grep $BOT_PID"
 sleep 5
 if ps -p $BOT_PID > /dev/null 2>&1; then
     echo "✅ Бот успешно запущен и работает"
-    echo "🌐 Проверьте доступность: curl http://91.217.77.71:5000/health"
+    SERVER_HOST=${SERVER_HOST:-localhost}
+    SERVER_PORT=${SERVER_PORT:-5000}
+    echo "🌐 Проверьте доступность: curl http://${SERVER_HOST}:${SERVER_PORT}/health"
 else
     echo "❌ Ошибка запуска бота"
     echo "📋 Проверьте логи: cat $BOT_LOG_FILE"

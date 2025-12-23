@@ -48,9 +48,11 @@ echo ""
 
 # Проверяем health endpoint
 echo "🏥 Проверка health endpoint:"
-if curl -s http://91.217.77.71:5000/health > /dev/null; then
+SERVER_HOST=${SERVER_HOST:-localhost}
+SERVER_PORT=${SERVER_PORT:-5000}
+if curl -s http://${SERVER_HOST}:${SERVER_PORT}/health > /dev/null; then
     echo "✅ Health endpoint доступен"
-    curl -s http://91.217.77.71:5000/health | jq . 2>/dev/null || curl -s http://91.217.77.71:5000/health
+    curl -s http://${SERVER_HOST}:${SERVER_PORT}/health | jq . 2>/dev/null || curl -s http://${SERVER_HOST}:${SERVER_PORT}/health
 else
     echo "❌ Health endpoint недоступен"
 fi
