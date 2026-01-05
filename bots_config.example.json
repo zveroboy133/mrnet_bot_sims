@@ -19,6 +19,16 @@
       "user_id": 0,
       "access_token": "ваш_access_token_здесь",
       "service_name": "pachka-bot-2"
+    },
+    "bot3": {
+      "name": "Третий бот",
+      "port": 5002,
+      "webhook_incoming": "https://api.pachca.com/webhooks/ВАШ_WEBHOOK_ID_3",
+      "webhook_outgoing": "http://ВАШ_IP_ИЛИ_ДОМЕН:5002/webhook",
+      "signing_secret": "ваш_signing_secret_здесь",
+      "user_id": 0,
+      "access_token": "ваш_access_token_здесь",
+      "service_name": "pachka-bot-3"
     }
   }
 }

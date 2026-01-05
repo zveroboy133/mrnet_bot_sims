@@ -246,7 +246,16 @@ class UniversalPachkaBot:
         try:
             # Проверяем команду /start (слеш уже убран)
             if command.lower() == "start":
-                welcome_message = f"""Привет! Я {self.name} для работы с Pachka API.
+                # Для bot3 показываем только простое приветственное сообщение
+                if "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
+                    welcome_message = f"""Привет! Я {self.name}.
+
+Я только что запущен и готов к работе! 🚀
+
+Пока что я умею только отвечать на команду /start.
+Скоро здесь будет больше функций!"""
+                else:
+                    welcome_message = f"""Привет! Я {self.name} для работы с Pachka API.
                 
 Доступные команды:
 /start - показать это сообщение
@@ -263,6 +272,12 @@ class UniversalPachkaBot:
                     logger.info(f"[{self.name}] Welcome message sent")
                 else:
                     logger.error(f"[{self.name}] Error sending welcome message")
+                    
+            # Для bot3 пока обрабатываем только /start
+            elif "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
+                # Для bot3 все остальные команды пока не поддерживаются
+                unknown_message = f"Извините, я пока умею только отвечать на команду /start.\nСкоро здесь будет больше функций! 🚀"
+                self.send_webhook_message(unknown_message, chat_id)
                     
             elif command.lower().startswith("new "):
                 # Команда /new
