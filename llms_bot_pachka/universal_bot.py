@@ -94,10 +94,17 @@ class UniversalPachkaBot:
         url = f"{self.api_base_url}/messages"
         
         # Правильный формат данных согласно документации Pachka API
+        # entity_id должен быть числом, а не строкой
+        try:
+            entity_id = int(chat_id) if chat_id else None
+        except (ValueError, TypeError):
+            logger.error(f"[{self.name}] Invalid chat_id: {chat_id}, must be a number")
+            return False
+        
         data = {
             "message": {
                 "entity_type": "discussion",
-                "entity_id": chat_id,
+                "entity_id": entity_id,
                 "content": message
             }
         }
@@ -477,8 +484,13 @@ class UniversalPachkaBot:
                 return True
             else:
                 logger.error(f"[{self.name}] Script failed with code {result.returncode}")
+                if result.stdout:
+                    logger.error(f"[{self.name}] Script stdout: {result.stdout}")
                 if result.stderr:
-                    logger.error(f"[{self.name}] Script error: {result.stderr}")
+                    logger.error(f"[{self.name}] Script stderr: {result.stderr}")
+                # Сохраняем полную ошибку для отправки в чат
+                error_details = result.stderr if result.stderr else result.stdout if result.stdout else "Неизвестная ошибка"
+                logger.error(f"[{self.name}] Full script error: {error_details}")
                 return False
                 
         except subprocess.TimeoutExpired:
