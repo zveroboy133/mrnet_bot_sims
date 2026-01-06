@@ -74,9 +74,10 @@ class UniversalPachkaBot:
         
         logger.info(f"[{self.name}] Bot initialized on port {self.port}")
 
-    def send_api_message(self, message: str, chat_id: str) -> bool:
+    def send_api_message(self, message: str, chat_id) -> bool:
         """
         Отправляет сообщение через API в конкретный чат
+        chat_id может быть строкой или числом
         """
         if not self.access_token:
             logger.error(f"[{self.name}] Access token not available for sending to specific chat")
@@ -538,7 +539,7 @@ class UniversalPachkaBot:
             logger.error(f"[{self.name}] Error finding JSON files: {e}")
             return []
 
-    def send_files_to_pachka(self, files: List[str], chat_id: str = "26222583") -> bool:
+    def send_files_to_pachka(self, files: List[str], chat_id: int = 26222583) -> bool:
         """
         Отправляет файлы в Pachka как base64 в тексте сообщения
         """
@@ -604,7 +605,7 @@ class UniversalPachkaBot:
         """
         Выполняет ежедневную задачу: запуск скрипта, поиск файлов, отправка в Pachka
         """
-        chat_id = "26222583"  # ID чата для отправки
+        chat_id = 26222583  # ID чата для отправки (число, не строка)
         
         logger.info(f"[{self.name}] Starting daily task execution")
         
