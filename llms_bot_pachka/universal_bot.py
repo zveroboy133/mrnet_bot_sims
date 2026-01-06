@@ -802,7 +802,7 @@ def main():
         logger.info(f"Starting {bot.name} (universal version)...")
         
         # Настраиваем планировщик для bot3
-        if "bot3" in bot_id.lower() or "третий" in bot.name.lower():
+        if bot.is_bot3:
             try:
                 scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Moscow'))
                 # Запускаем задачу каждый день в 17:00 MSK
