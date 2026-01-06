@@ -50,6 +50,14 @@ class UniversalPachkaBot:
         self.signing_secret = bot_config.get('signing_secret')
         self.user_id = bot_config.get('user_id')
         self.access_token = bot_config.get('access_token')
+        self.service_name = bot_config.get('service_name', '')
+        
+        # Определяем, является ли это bot3
+        self.is_bot3 = (
+            "bot3" in self.service_name.lower() or 
+            "третий" in self.name.lower() or
+            self.port == 5002
+        )
         
         # API настройки
         self.api_base_url = "https://api.pachca.com"
@@ -254,7 +262,7 @@ class UniversalPachkaBot:
             # Проверяем команду /start (слеш уже убран)
             if command.lower() == "start":
                 # Для bot3 показываем только простое приветственное сообщение
-                if "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
+                if self.is_bot3:
                     welcome_message = f"""Привет! Я {self.name}.
 
 Я автоматически запускаю скрипт экспорта каждый день в 17:00 MSK и отправляю файлы в Pachka.
@@ -282,7 +290,7 @@ class UniversalPachkaBot:
                     logger.error(f"[{self.name}] Error sending welcome message")
                     
             # Для bot3 обрабатываем команды
-            elif "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
+            elif self.is_bot3:
                 if command.lower() == "run_script":
                     # Команда /run_script - ручной запуск ежедневной задачи
                     logger.info(f"[{self.name}] Manual script execution requested")
