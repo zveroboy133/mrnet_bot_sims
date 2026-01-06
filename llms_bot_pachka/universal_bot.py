@@ -4,10 +4,17 @@ import os
 import logging
 import time
 import sys
-from typing import Dict, Any
-from datetime import datetime
+import subprocess
+import base64
+import glob
+from pathlib import Path
+from typing import Dict, Any, List, Optional
+from datetime import datetime, date
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import pytz
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -250,10 +257,11 @@ class UniversalPachkaBot:
                 if "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
                     welcome_message = f"""Привет! Я {self.name}.
 
-Я только что запущен и готов к работе! 🚀
+Я автоматически запускаю скрипт экспорта каждый день в 17:00 MSK и отправляю файлы в Pachka.
 
-Пока что я умею только отвечать на команду /start.
-Скоро здесь будет больше функций!"""
+Доступные команды:
+/start - показать это сообщение
+/run_script - запустить скрипт экспорта вручную"""
                 else:
                     welcome_message = f"""Привет! Я {self.name} для работы с Pachka API.
                 
@@ -273,11 +281,21 @@ class UniversalPachkaBot:
                 else:
                     logger.error(f"[{self.name}] Error sending welcome message")
                     
-            # Для bot3 пока обрабатываем только /start
+            # Для bot3 обрабатываем команды
             elif "bot3" in self.config.get('service_name', '').lower() or "третий" in self.name.lower():
-                # Для bot3 все остальные команды пока не поддерживаются
-                unknown_message = f"Извините, я пока умею только отвечать на команду /start.\nСкоро здесь будет больше функций! 🚀"
-                self.send_webhook_message(unknown_message, chat_id)
+                if command.lower() == "run_script":
+                    # Команда /run_script - ручной запуск ежедневной задачи
+                    logger.info(f"[{self.name}] Manual script execution requested")
+                    self.send_webhook_message("🔄 Запускаю скрипт экспорта...", chat_id)
+                    # Запускаем задачу в отдельном потоке, чтобы не блокировать ответ
+                    import threading
+                    thread = threading.Thread(target=self.execute_daily_task)
+                    thread.daemon = True
+                    thread.start()
+                else:
+                    # Для bot3 все остальные команды пока не поддерживаются
+                    unknown_message = f"Извините, доступные команды:\n/start - показать это сообщение\n/run_script - запустить скрипт экспорта вручную"
+                    self.send_webhook_message(unknown_message, chat_id)
                     
             elif command.lower().startswith("new "):
                 # Команда /new
@@ -404,6 +422,205 @@ class UniversalPachkaBot:
             error_message = f"❌ Ошибка при проверке симкарт для устройства {router_name}: {str(e)}"
             self.send_webhook_message(error_message, chat_id)
             logger.error(f"[{self.name}] Error in check_sim_activity for router {router_name}: {e}")
+
+    def run_iccid_imei_export_script(self) -> bool:
+        """
+        Запускает скрипт main.py из папки iccid_imei_export
+        """
+        try:
+            # Определяем путь к скрипту
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            script_dir = os.path.join(base_dir, 'iccid_imei_export')
+            script_path = os.path.join(script_dir, 'main.py')
+            
+            if not os.path.exists(script_path):
+                logger.error(f"[{self.name}] Script not found: {script_path}")
+                return False
+            
+            # Определяем Python из виртуального окружения или системный
+            venv_python = os.path.join(base_dir, 'find_sims_env', 'bin', 'python')
+            if os.path.exists(venv_python):
+                python_cmd = venv_python
+            else:
+                # Пробуем найти виртуальное окружение в родительской папке
+                parent_venv = os.path.join(os.path.dirname(base_dir), 'find_sims', 'find_sims_env', 'bin', 'python')
+                if os.path.exists(parent_venv):
+                    python_cmd = parent_venv
+                else:
+                    python_cmd = 'python3'
+            
+            logger.info(f"[{self.name}] Running script: {script_path}")
+            logger.info(f"[{self.name}] Using Python: {python_cmd}")
+            
+            # Запускаем скрипт
+            result = subprocess.run(
+                [python_cmd, script_path],
+                cwd=script_dir,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 минут таймаут
+            )
+            
+            if result.returncode == 0:
+                logger.info(f"[{self.name}] Script executed successfully")
+                if result.stdout:
+                    logger.info(f"[{self.name}] Script output: {result.stdout}")
+                return True
+            else:
+                logger.error(f"[{self.name}] Script failed with code {result.returncode}")
+                if result.stderr:
+                    logger.error(f"[{self.name}] Script error: {result.stderr}")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            logger.error(f"[{self.name}] Script execution timeout")
+            return False
+        except Exception as e:
+            logger.error(f"[{self.name}] Error running script: {e}")
+            return False
+
+    def find_today_json_files(self) -> List[str]:
+        """
+        Находит JSON файлы за текущую дату в папке iccid_imei_export
+        Ищет файлы, которые были изменены сегодня
+        """
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            script_dir = os.path.join(base_dir, 'iccid_imei_export')
+            
+            if not os.path.exists(script_dir):
+                logger.error(f"[{self.name}] Directory not found: {script_dir}")
+                return []
+            
+            # Получаем текущую дату
+            today = date.today()
+            
+            # Ищем все JSON файлы в папке
+            json_files = []
+            for file_path in glob.glob(os.path.join(script_dir, '*.json')):
+                try:
+                    # Проверяем, что файл был изменен сегодня
+                    file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    if file_time.date() == today:
+                        json_files.append(file_path)
+                        logger.info(f"[{self.name}] Found today's file: {os.path.basename(file_path)} (modified: {file_time})")
+                except Exception as e:
+                    logger.warning(f"[{self.name}] Error checking file {file_path}: {e}")
+                    continue
+            
+            # Сортируем по времени изменения (новые первыми)
+            json_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            logger.info(f"[{self.name}] Found {len(json_files)} JSON files for today")
+            return json_files
+            
+        except Exception as e:
+            logger.error(f"[{self.name}] Error finding JSON files: {e}")
+            return []
+
+    def send_files_to_pachka(self, files: List[str], chat_id: str = "26222583") -> bool:
+        """
+        Отправляет файлы в Pachka как base64 в тексте сообщения
+        """
+        if not files:
+            logger.warning(f"[{self.name}] No files to send")
+            return False
+        
+        try:
+            message_parts = ["Ежедневный список iccid:imei\n"]
+            
+            for file_path in files:
+                try:
+                    file_name = os.path.basename(file_path)
+                    
+                    # Читаем файл и кодируем в base64
+                    with open(file_path, 'rb') as f:
+                        file_content = f.read()
+                        file_size = len(file_content)
+                        
+                        # Если файл больше 1MB, пропускаем или обрезаем
+                        if file_size > 1024 * 1024:
+                            logger.warning(f"[{self.name}] File {file_name} is too large ({file_size} bytes), skipping")
+                            continue
+                        
+                        base64_content = base64.b64encode(file_content).decode('utf-8')
+                    
+                    # Добавляем файл в сообщение
+                    message_parts.append(f"\n📄 {file_name} ({file_size} bytes):")
+                    message_parts.append(f"```json")
+                    message_parts.append(base64_content)
+                    message_parts.append(f"```")
+                    
+                except Exception as e:
+                    logger.error(f"[{self.name}] Error processing file {file_path}: {e}")
+                    continue
+            
+            if len(message_parts) == 1:  # Только заголовок, файлов нет
+                logger.warning(f"[{self.name}] No valid files to send")
+                return False
+            
+            message = "\n".join(message_parts)
+            
+            # Отправляем сообщение
+            return self.send_api_message(message, chat_id)
+            
+        except Exception as e:
+            logger.error(f"[{self.name}] Error sending files to Pachka: {e}")
+            return False
+
+    def cleanup_files(self, files: List[str]) -> None:
+        """
+        Удаляет файлы после отправки
+        """
+        for file_path in files:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    logger.info(f"[{self.name}] Deleted file: {file_path}")
+            except Exception as e:
+                logger.error(f"[{self.name}] Error deleting file {file_path}: {e}")
+
+    def execute_daily_task(self) -> None:
+        """
+        Выполняет ежедневную задачу: запуск скрипта, поиск файлов, отправка в Pachka
+        """
+        chat_id = "26222583"  # ID чата для отправки
+        
+        logger.info(f"[{self.name}] Starting daily task execution")
+        
+        try:
+            # 1. Запускаем скрипт
+            logger.info(f"[{self.name}] Step 1: Running export script")
+            if not self.run_iccid_imei_export_script():
+                error_msg = "❌ Ошибка: не удалось запустить скрипт экспорта"
+                self.send_api_message(error_msg, chat_id)
+                return
+            
+            # 2. Ищем файлы за сегодня
+            logger.info(f"[{self.name}] Step 2: Finding today's JSON files")
+            files = self.find_today_json_files()
+            
+            if not files:
+                error_msg = "❌ Ошибка: файлы не были созданы скриптом"
+                self.send_api_message(error_msg, chat_id)
+                return
+            
+            # 3. Отправляем файлы в Pachka
+            logger.info(f"[{self.name}] Step 3: Sending files to Pachka")
+            if not self.send_files_to_pachka(files, chat_id):
+                error_msg = "❌ Ошибка: не удалось отправить файлы в Pachka"
+                self.send_api_message(error_msg, chat_id)
+                return
+            
+            # 4. Удаляем файлы после успешной отправки
+            logger.info(f"[{self.name}] Step 4: Cleaning up files")
+            self.cleanup_files(files)
+            
+            logger.info(f"[{self.name}] Daily task completed successfully")
+            
+        except Exception as e:
+            error_msg = f"❌ Ошибка при выполнении ежедневной задачи: {str(e)}"
+            logger.error(f"[{self.name}] Error in daily task: {e}")
+            self.send_api_message(error_msg, chat_id)
 
     def handle_webhook_event(self, event_data: Dict[str, Any]) -> None:
         """
@@ -575,6 +792,23 @@ def main():
         # Создаем экземпляр бота
         bot = create_bot(bot_id)
         logger.info(f"Starting {bot.name} (universal version)...")
+        
+        # Настраиваем планировщик для bot3
+        if "bot3" in bot_id.lower() or "третий" in bot.name.lower():
+            try:
+                scheduler = BackgroundScheduler(timezone=pytz.timezone('Europe/Moscow'))
+                # Запускаем задачу каждый день в 17:00 MSK
+                scheduler.add_job(
+                    func=bot.execute_daily_task,
+                    trigger=CronTrigger(hour=17, minute=0, timezone=pytz.timezone('Europe/Moscow')),
+                    id='daily_export_task',
+                    name='Daily ICCID:IMEI Export',
+                    replace_existing=True
+                )
+                scheduler.start()
+                logger.info(f"[{bot.name}] Scheduler started: daily task at 17:00 MSK")
+            except Exception as e:
+                logger.error(f"[{bot.name}] Failed to start scheduler: {e}")
         
         # Отправляем тестовое сообщение через webhook
         logger.info("Sending test message...")
