@@ -105,7 +105,7 @@ class UniversalPachkaBot:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.access_token}",
-            "User-Agent": f"PachkaBot/{self.name}/1.0"
+            "User-Agent": "PachkaBot/1.0"  # Используем ASCII для избежания проблем с кодировкой
         }
         
         logger.info(f"[{self.name}] Using correct Pachka API endpoint: {url}")
@@ -446,14 +446,15 @@ class UniversalPachkaBot:
                 return False
             
             # Определяем Python из виртуального окружения или системный
-            venv_python = os.path.join(base_dir, 'find_sims_env', 'bin', 'python')
-            if os.path.exists(venv_python):
-                python_cmd = venv_python
+            # Сначала пробуем найти виртуальное окружение в родительской папке (find_sims) - там правильные зависимости
+            parent_venv = os.path.join(os.path.dirname(base_dir), 'find_sims', 'find_sims_env', 'bin', 'python')
+            if os.path.exists(parent_venv):
+                python_cmd = parent_venv
             else:
-                # Пробуем найти виртуальное окружение в родительской папке
-                parent_venv = os.path.join(os.path.dirname(base_dir), 'find_sims', 'find_sims_env', 'bin', 'python')
-                if os.path.exists(parent_venv):
-                    python_cmd = parent_venv
+                # Если нет, пробуем локальное окружение
+                venv_python = os.path.join(base_dir, 'find_sims_env', 'bin', 'python')
+                if os.path.exists(venv_python):
+                    python_cmd = venv_python
                 else:
                     python_cmd = 'python3'
             
