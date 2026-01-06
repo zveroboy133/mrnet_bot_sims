@@ -59,6 +59,9 @@ class UniversalPachkaBot:
             self.port == 5002
         )
         
+        # Хранилище для последней ошибки скрипта
+        self._last_script_error = None
+        
         # API настройки
         self.api_base_url = "https://api.pachca.com"
         self.last_message_time = 0
@@ -482,6 +485,7 @@ class UniversalPachkaBot:
                 logger.info(f"[{self.name}] Script executed successfully")
                 if result.stdout:
                     logger.info(f"[{self.name}] Script output: {result.stdout}")
+                self._last_script_error = None  # Сбрасываем ошибку при успехе
                 return True
             else:
                 logger.error(f"[{self.name}] Script failed with code {result.returncode}")
@@ -491,52 +495,65 @@ class UniversalPachkaBot:
                     logger.error(f"[{self.name}] Script stderr: {result.stderr}")
                 # Сохраняем полную ошибку для отправки в чат
                 error_details = result.stderr if result.stderr else result.stdout if result.stdout else "Неизвестная ошибка"
+                self._last_script_error = error_details  # Сохраняем для использования в сообщении об ошибке
                 logger.error(f"[{self.name}] Full script error: {error_details}")
                 return False
                 
         except subprocess.TimeoutExpired:
             logger.error(f"[{self.name}] Script execution timeout")
+            self._last_script_error = "Таймаут выполнения скрипта (превышено 5 минут)"
             return False
         except Exception as e:
             logger.error(f"[{self.name}] Error running script: {e}")
+            self._last_script_error = str(e)
             return False
 
     def find_today_json_files(self) -> List[str]:
         """
-        Находит JSON файлы за текущую дату в папке iccid_imei_export
+        Находит файлы (CSV) за текущую дату в папке iccid_imei_export/exports
         Ищет файлы, которые были изменены сегодня
+        Скрипт создает CSV файлы, а не JSON, но функция оставлена с прежним названием для совместимости
         """
         try:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             script_dir = os.path.join(base_dir, 'iccid_imei_export')
+            exports_dir = os.path.join(script_dir, 'exports')
             
             if not os.path.exists(script_dir):
                 logger.error(f"[{self.name}] Directory not found: {script_dir}")
                 return []
             
+            # Создаем папку exports, если её нет
+            if not os.path.exists(exports_dir):
+                logger.warning(f"[{self.name}] Exports directory not found, creating: {exports_dir}")
+                os.makedirs(exports_dir, exist_ok=True)
+            
             # Получаем текущую дату
             today = date.today()
             
-            # Ищем все JSON файлы в папке
-            json_files = []
-            for file_path in glob.glob(os.path.join(script_dir, '*.json')):
-                try:
-                    # Проверяем, что файл был изменен сегодня
-                    file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
-                    if file_time.date() == today:
-                        json_files.append(file_path)
-                        logger.info(f"[{self.name}] Found today's file: {os.path.basename(file_path)} (modified: {file_time})")
-                except Exception as e:
-                    logger.warning(f"[{self.name}] Error checking file {file_path}: {e}")
-                    continue
+            # Ищем все CSV файлы в папке exports (скрипт создает CSV, а не JSON)
+            found_files = []
+            
+            # Ищем CSV файлы в папке exports
+            for pattern in ['*.csv', '*.json']:  # Ищем и CSV, и JSON на случай изменений
+                for file_path in glob.glob(os.path.join(exports_dir, pattern)):
+                    try:
+                        # Проверяем, что файл был изменен сегодня
+                        file_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                        if file_time.date() == today:
+                            found_files.append(file_path)
+                            logger.info(f"[{self.name}] Found today's file: {os.path.basename(file_path)} (modified: {file_time})")
+                    except Exception as e:
+                        logger.warning(f"[{self.name}] Error checking file {file_path}: {e}")
+                        continue
             
             # Сортируем по времени изменения (новые первыми)
-            json_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-            logger.info(f"[{self.name}] Found {len(json_files)} JSON files for today")
-            return json_files
+            found_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            logger.info(f"[{self.name}] Found {len(found_files)} files for today")
+            return found_files
             
         except Exception as e:
-            logger.error(f"[{self.name}] Error finding JSON files: {e}")
+            logger.error(f"[{self.name}] Error finding files: {e}")
             return []
 
     def send_files_to_pachka(self, files: List[str], chat_id: int = 26222583) -> bool:
@@ -612,8 +629,14 @@ class UniversalPachkaBot:
         try:
             # 1. Запускаем скрипт
             logger.info(f"[{self.name}] Step 1: Running export script")
-            if not self.run_iccid_imei_export_script():
+            script_result = self.run_iccid_imei_export_script()
+            if not script_result:
+                # Получаем детали ошибки из последнего запуска скрипта
                 error_msg = "❌ Ошибка: не удалось запустить скрипт экспорта"
+                # Попробуем получить детали ошибки из логов (если они есть)
+                # Для этого нужно сохранить последнюю ошибку в атрибуте класса
+                if hasattr(self, '_last_script_error') and self._last_script_error:
+                    error_msg += f"\n\nДетали ошибки:\n{self._last_script_error[:500]}"  # Ограничиваем длину
                 self.send_api_message(error_msg, chat_id)
                 return
             
