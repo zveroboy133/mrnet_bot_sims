@@ -61,11 +61,28 @@ class GoogleSheetsProcessor:
             
             # Если токен все еще недействителен, создаем новый
             if not self.creds or not self.creds.valid:
-                # Используем абсолютный путь к credentials_file
-                abs_credentials_file = os.path.abspath(self.credentials_file)
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    abs_credentials_file, self.SCOPES)
-                self.creds = flow.run_local_server(port=0)
+                # Проверяем, существует ли token.json
+                if not os.path.exists(self.token_file):
+                    token_dir = os.path.dirname(self.token_file)
+                    raise Exception(
+                        f"[ОШИБКА] Файл токена не найден: {self.token_file}\n"
+                        f"[РЕШЕНИЕ] Для первого запуска необходимо создать токен вручную:\n"
+                        f"1. Подключитесь к серверу с доступом к браузеру (SSH с X11 forwarding или локально)\n"
+                        f"2. Запустите скрипт вручную:\n"
+                        f"   cd {token_dir}\n"
+                        f"   python3 -c \"from google_sheets_processor import GoogleSheetsProcessor; GoogleSheetsProcessor('{self.credentials_file}')\"\n"
+                        f"3. После авторизации файл token.json будет создан в: {token_dir}\n"
+                        f"4. Затем скрипт сможет работать автоматически"
+                    )
+                
+                # Если token.json существует, но невалиден - это критическая ошибка
+                # На сервере без браузера мы не можем создать новый токен автоматически
+                raise Exception(
+                    f"[ОШИБКА] Токен недействителен и не может быть обновлен автоматически\n"
+                    f"[РЕШЕНИЕ] Удалите файл {self.token_file} и создайте новый токен вручную:\n"
+                    f"1. Удалите старый токен: rm {self.token_file}\n"
+                    f"2. Запустите скрипт вручную с доступом к браузеру для создания нового токена"
+                )
             
             # Сохраняем учетные данные для следующего запуска
             with open(self.token_file, 'w') as token:
