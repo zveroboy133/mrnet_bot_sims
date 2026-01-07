@@ -15,16 +15,14 @@ import sys
 import datetime
 from pathlib import Path
 
-# Добавляем путь к родительской директории для импорта GoogleSheetsProcessor
+# Импортируем GoogleSheetsProcessor из текущей директории
 current_dir = Path(__file__).parent
-parent_dir = current_dir.parent
-sys.path.insert(0, str(parent_dir))
 
 try:
     from google_sheets_processor import GoogleSheetsProcessor
 except ImportError:
     print("[ОШИБКА] Не удалось импортировать GoogleSheetsProcessor")
-    print("[ПОДСКАЗКА] Убедитесь, что файл google_sheets_processor.py находится в родительской директории")
+    print("[ПОДСКАЗКА] Убедитесь, что файл google_sheets_processor.py находится в той же директории, что и main.py")
     sys.exit(1)
 
 
@@ -324,3 +322,4 @@ def export_iccid_imei():
 if __name__ == "__main__":
     success = export_iccid_imei()
     sys.exit(0 if success else 1)
+
