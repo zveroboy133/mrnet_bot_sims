@@ -10,7 +10,7 @@ import glob
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime, date
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -874,7 +874,6 @@ def serve_file(filename):
             return jsonify({"status": "error", "message": "Access denied"}), 403
         
         # Отправляем файл
-        from flask import send_file
         return send_file(file_path, as_attachment=True, download_name=filename)
         
     except Exception as e:
