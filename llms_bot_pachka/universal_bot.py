@@ -562,36 +562,33 @@ class UniversalPachkaBot:
 
     def send_files_to_pachka(self, files: List[str], chat_id: int = 26222583) -> bool:
         """
-        Отправляет файлы в Pachka как base64 в тексте сообщения
+        Отправляет ссылки на файлы в Pachka
         """
         if not files:
             logger.warning(f"[{self.name}] No files to send")
             return False
         
         try:
+            # Получаем IP сервера для генерации ссылок
+            # Используем IP из конфигурации или из переменной окружения
+            server_ip = os.getenv('SERVER_HOST', '91.217.77.71')
+            if server_ip == '0.0.0.0':
+                server_ip = '91.217.77.71'  # Fallback на известный IP
+            
             message_parts = ["Ежедневный список iccid:imei\n"]
             
             for file_path in files:
                 try:
                     file_name = os.path.basename(file_path)
                     
-                    # Читаем файл и кодируем в base64
-                    with open(file_path, 'rb') as f:
-                        file_content = f.read()
-                        file_size = len(file_content)
-                        
-                        # Если файл больше 1MB, пропускаем или обрезаем
-                        if file_size > 1024 * 1024:
-                            logger.warning(f"[{self.name}] File {file_name} is too large ({file_size} bytes), skipping")
-                            continue
-                        
-                        base64_content = base64.b64encode(file_content).decode('utf-8')
+                    # Получаем размер файла
+                    file_size = os.path.getsize(file_path)
                     
-                    # Добавляем файл в сообщение
-                    message_parts.append(f"\n📄 {file_name} ({file_size} bytes):")
-                    message_parts.append(f"```json")
-                    message_parts.append(base64_content)
-                    message_parts.append(f"```")
+                    # Генерируем ссылку на файл
+                    file_url = f"http://{server_ip}:{self.port}/files/{file_name}"
+                    
+                    # Добавляем ссылку в сообщение
+                    message_parts.append(f"\n📄 [{file_name}]({file_url}) ({file_size} bytes)")
                     
                 except Exception as e:
                     logger.error(f"[{self.name}] Error processing file {file_path}: {e}")
@@ -612,17 +609,35 @@ class UniversalPachkaBot:
             logger.error(f"[{self.name}] Error sending files to Pachka: {e}")
             return False
 
-    def cleanup_files(self, files: List[str]) -> None:
+    def cleanup_old_files(self) -> None:
         """
-        Удаляет файлы после отправки
+        Удаляет старые файлы из папки exports перед созданием новых
+        Файлы живут сутки или до следующего запуска скрипта
         """
-        for file_path in files:
-            try:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                    logger.info(f"[{self.name}] Deleted file: {file_path}")
-            except Exception as e:
-                logger.error(f"[{self.name}] Error deleting file {file_path}: {e}")
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            exports_dir = os.path.join(base_dir, 'iccid_imei_export', 'exports')
+            
+            if not os.path.exists(exports_dir):
+                return
+            
+            # Удаляем все файлы из папки exports
+            deleted_count = 0
+            for file_name in os.listdir(exports_dir):
+                file_path = os.path.join(exports_dir, file_name)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        deleted_count += 1
+                        logger.info(f"[{self.name}] Deleted old file: {file_name}")
+                except Exception as e:
+                    logger.error(f"[{self.name}] Error deleting old file {file_path}: {e}")
+            
+            if deleted_count > 0:
+                logger.info(f"[{self.name}] Cleaned up {deleted_count} old file(s) from exports directory")
+            
+        except Exception as e:
+            logger.error(f"[{self.name}] Error cleaning up old files: {e}")
 
     def execute_daily_task(self) -> None:
         """
@@ -633,6 +648,10 @@ class UniversalPachkaBot:
         logger.info(f"[{self.name}] Starting daily task execution")
         
         try:
+            # 0. Удаляем старые файлы перед созданием новых
+            logger.info(f"[{self.name}] Step 0: Cleaning up old files")
+            self.cleanup_old_files()
+            
             # 1. Запускаем скрипт
             logger.info(f"[{self.name}] Step 1: Running export script")
             script_result = self.run_iccid_imei_export_script()
@@ -673,9 +692,8 @@ class UniversalPachkaBot:
                     self.send_api_message(error_msg, chat_id)
                 return
             
-            # 4. Удаляем файлы после успешной отправки
-            logger.info(f"[{self.name}] Step 4: Cleaning up files")
-            self.cleanup_files(files)
+            # 4. Файлы не удаляем - они остаются для скачивания до следующего запуска
+            logger.info(f"[{self.name}] Files are available for download at http://{os.getenv('SERVER_HOST', '91.217.77.71')}:{self.port}/files/")
             
             logger.info(f"[{self.name}] Daily task completed successfully")
             
@@ -831,6 +849,37 @@ def health_check():
         "timestamp": datetime.now().isoformat(),
         "bot_name": bot.name if bot else "Unknown"
     })
+
+@app.route('/files/<filename>', methods=['GET'])
+def serve_file(filename):
+    """
+    Раздает файлы из папки exports для скачивания
+    """
+    try:
+        # Безопасность: проверяем, что filename не содержит опасных символов
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({"status": "error", "message": "Invalid filename"}), 400
+        
+        # Определяем путь к файлу
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        exports_dir = os.path.join(base_dir, 'iccid_imei_export', 'exports')
+        file_path = os.path.join(exports_dir, filename)
+        
+        # Проверяем, что файл существует и находится в правильной директории
+        if not os.path.exists(file_path):
+            return jsonify({"status": "error", "message": "File not found"}), 404
+        
+        # Проверяем, что файл действительно в папке exports (защита от path traversal)
+        if not os.path.abspath(file_path).startswith(os.path.abspath(exports_dir)):
+            return jsonify({"status": "error", "message": "Access denied"}), 403
+        
+        # Отправляем файл
+        from flask import send_file
+        return send_file(file_path, as_attachment=True, download_name=filename)
+        
+    except Exception as e:
+        logger.error(f"Error serving file {filename}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 def main():
     """
