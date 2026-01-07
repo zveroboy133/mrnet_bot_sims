@@ -17,12 +17,16 @@ from pathlib import Path
 
 # Импортируем GoogleSheetsProcessor из текущей директории
 current_dir = Path(__file__).parent
+# Добавляем текущую директорию в sys.path для импорта модулей
+sys.path.insert(0, str(current_dir))
 
 try:
     from google_sheets_processor import GoogleSheetsProcessor
-except ImportError:
-    print("[ОШИБКА] Не удалось импортировать GoogleSheetsProcessor")
-    print("[ПОДСКАЗКА] Убедитесь, что файл google_sheets_processor.py находится в той же директории, что и main.py")
+except ImportError as e:
+    print(f"[ОШИБКА] Не удалось импортировать GoogleSheetsProcessor: {e}")
+    print(f"[ПОДСКАЗКА] Текущая директория: {current_dir}")
+    print(f"[ПОДСКАЗКА] sys.path: {sys.path}")
+    print(f"[ПОДСКАЗКА] Проверьте, что файл google_sheets_processor.py находится в: {current_dir}")
     sys.exit(1)
 
 
