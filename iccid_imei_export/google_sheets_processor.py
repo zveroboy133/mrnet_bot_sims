@@ -2,7 +2,6 @@ import gspread
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
 import os.path
 import pandas as pd
 from typing import List, Dict, Optional, Union
