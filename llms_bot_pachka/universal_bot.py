@@ -214,7 +214,8 @@ class UniversalPachkaBot:
                 logger.info(f"[{self.name}] Fallback message prepared (no access token): {message[:100]}...")
         
         # Отправляем сообщение через webhook (общий канал или после fallback)
-        if not chat_id:
+        # Для bot3 (вариант A) всегда отправляем через webhook, даже если передан chat_id
+        if not chat_id or self.is_bot3:
             logger.info(f"[{self.name}] Sending message via webhook to general channel")
             # Используем webhook для отправки в общий канал
             # ВАЖНО: НИКОГДА НЕ МЕНЯТЬ "message" на "text" - это сломает работу webhook!
@@ -261,6 +262,7 @@ class UniversalPachkaBot:
                 logger.error(f"[{self.name}] Webhook exception: {e}")
                 return False
         else:
+            # Сюда попадем только для ботов, у которых API отключен и chat_id остался установлен.
             logger.warning(f"[{self.name}] chat_id is still set ({chat_id}), but API is disabled. Message not sent.")
             return False
 
