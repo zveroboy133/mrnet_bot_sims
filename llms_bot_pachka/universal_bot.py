@@ -609,10 +609,82 @@ class UniversalPachkaBot:
             logger.error(f"[{self.name}] Error sending files to Pachka: {e}")
             return False
 
-    def cleanup_old_files(self) -> None:
+    def get_existing_files_content(self) -> Dict[str, bytes]:
         """
-        Удаляет старые файлы из папки exports перед созданием новых
-        Файлы живут сутки или до следующего запуска скрипта
+        Получает содержимое существующих файлов в папке exports для сравнения
+        Возвращает словарь: имя_файла -> содержимое_файла
+        """
+        existing_files = {}
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            exports_dir = os.path.join(base_dir, 'iccid_imei_export', 'exports')
+            
+            if not os.path.exists(exports_dir):
+                return existing_files
+            
+            # Читаем содержимое всех существующих файлов
+            for file_name in os.listdir(exports_dir):
+                file_path = os.path.join(exports_dir, file_name)
+                try:
+                    if os.path.isfile(file_path):
+                        with open(file_path, 'rb') as f:
+                            existing_files[file_name] = f.read()
+                        logger.info(f"[{self.name}] Loaded existing file for comparison: {file_name} ({len(existing_files[file_name])} bytes)")
+                except Exception as e:
+                    logger.warning(f"[{self.name}] Error reading existing file {file_path}: {e}")
+                    continue
+            
+            logger.info(f"[{self.name}] Loaded {len(existing_files)} existing file(s) for comparison")
+            return existing_files
+            
+        except Exception as e:
+            logger.error(f"[{self.name}] Error getting existing files content: {e}")
+            return existing_files
+    
+    def compare_files(self, existing_files: Dict[str, bytes], new_files: List[str]) -> List[str]:
+        """
+        Сравнивает новые файлы со старыми по содержимому
+        Возвращает список файлов, которые изменились или являются новыми
+        """
+        changed_files = []
+        
+        for new_file_path in new_files:
+            new_file_name = os.path.basename(new_file_path)
+            
+            try:
+                # Читаем содержимое нового файла
+                with open(new_file_path, 'rb') as f:
+                    new_content = f.read()
+                
+                # Проверяем, есть ли файл с таким же именем в старых
+                if new_file_name in existing_files:
+                    old_content = existing_files[new_file_name]
+                    if old_content == new_content:
+                        # Содержимое одинаковое - файл не изменился
+                        logger.info(f"[{self.name}] File {new_file_name} unchanged, skipping")
+                        continue
+                    else:
+                        # Содержимое различается - файл изменился
+                        logger.info(f"[{self.name}] File {new_file_name} changed (old: {len(old_content)} bytes, new: {len(new_content)} bytes)")
+                        changed_files.append(new_file_path)
+                else:
+                    # Файл новый (не было такого имени в старых)
+                    logger.info(f"[{self.name}] New file {new_file_name} found")
+                    changed_files.append(new_file_path)
+                    
+            except Exception as e:
+                logger.error(f"[{self.name}] Error comparing file {new_file_path}: {e}")
+                # В случае ошибки считаем файл изменённым (на всякий случай)
+                changed_files.append(new_file_path)
+                continue
+        
+        logger.info(f"[{self.name}] Found {len(changed_files)} changed or new file(s) out of {len(new_files)} total")
+        return changed_files
+    
+    def cleanup_old_files(self, keep_files: List[str] = None) -> None:
+        """
+        Удаляет старые файлы из папки exports
+        keep_files - список путей к файлам, которые нужно сохранить
         """
         try:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -621,12 +693,17 @@ class UniversalPachkaBot:
             if not os.path.exists(exports_dir):
                 return
             
-            # Удаляем все файлы из папки exports
+            # Создаём множество имён файлов для сохранения
+            keep_file_names = set()
+            if keep_files:
+                keep_file_names = {os.path.basename(f) for f in keep_files}
+            
+            # Удаляем все файлы, кроме тех, что нужно сохранить
             deleted_count = 0
             for file_name in os.listdir(exports_dir):
                 file_path = os.path.join(exports_dir, file_name)
                 try:
-                    if os.path.isfile(file_path):
+                    if os.path.isfile(file_path) and file_name not in keep_file_names:
                         os.remove(file_path)
                         deleted_count += 1
                         logger.info(f"[{self.name}] Deleted old file: {file_name}")
@@ -641,16 +718,16 @@ class UniversalPachkaBot:
 
     def execute_daily_task(self) -> None:
         """
-        Выполняет ежедневную задачу: запуск скрипта, поиск файлов, отправка в Pachka
+        Выполняет ежедневную задачу: запуск скрипта, поиск файлов, сравнение, отправка в Pachka
         """
         chat_id = 26222583  # ID чата для отправки (число, не строка)
 
         logger.info(f"[{self.name}] Starting daily task execution")
         
         try:
-            # 0. Удаляем старые файлы перед созданием новых
-            logger.info(f"[{self.name}] Step 0: Cleaning up old files")
-            self.cleanup_old_files()
+            # 0. Получаем содержимое существующих файлов для сравнения
+            logger.info(f"[{self.name}] Step 0: Loading existing files for comparison")
+            existing_files = self.get_existing_files_content()
             
             # 1. Запускаем скрипт
             logger.info(f"[{self.name}] Step 1: Running export script")
@@ -671,10 +748,10 @@ class UniversalPachkaBot:
                 return
             
             # 2. Ищем файлы за сегодня
-            logger.info(f"[{self.name}] Step 2: Finding today's JSON files")
-            files = self.find_today_json_files()
+            logger.info(f"[{self.name}] Step 2: Finding today's files")
+            new_files = self.find_today_json_files()
             
-            if not files:
+            if not new_files:
                 error_msg = "❌ Ошибка: файлы не были созданы скриптом"
                 if self.is_bot3:
                     self.send_webhook_message(error_msg, chat_id)
@@ -682,9 +759,26 @@ class UniversalPachkaBot:
                     self.send_api_message(error_msg, chat_id)
                 return
             
-            # 3. Отправляем файлы в Pachka
-            logger.info(f"[{self.name}] Step 3: Sending files to Pachka")
-            if not self.send_files_to_pachka(files, chat_id):
+            # 3. Сравниваем новые файлы со старыми
+            logger.info(f"[{self.name}] Step 3: Comparing files with existing ones")
+            changed_files = self.compare_files(existing_files, new_files)
+            
+            if not changed_files:
+                # Все файлы идентичны - не отправляем ссылки
+                logger.info(f"[{self.name}] No files changed, skipping notification")
+                # Удаляем новые файлы (они идентичны старым)
+                for file_path in new_files:
+                    try:
+                        os.remove(file_path)
+                        logger.info(f"[{self.name}] Removed unchanged file: {os.path.basename(file_path)}")
+                    except Exception as e:
+                        logger.error(f"[{self.name}] Error removing unchanged file {file_path}: {e}")
+                logger.info(f"[{self.name}] Daily task completed: no changes detected")
+                return
+            
+            # 4. Отправляем ссылки только на изменённые файлы
+            logger.info(f"[{self.name}] Step 4: Sending links to changed files")
+            if not self.send_files_to_pachka(changed_files, chat_id):
                 error_msg = "❌ Ошибка: не удалось отправить файлы в Pachka"
                 if self.is_bot3:
                     self.send_webhook_message(error_msg, chat_id)
@@ -692,10 +786,13 @@ class UniversalPachkaBot:
                     self.send_api_message(error_msg, chat_id)
                 return
             
-            # 4. Файлы не удаляем - они остаются для скачивания до следующего запуска
+            # 5. Удаляем старые файлы, оставляем только новые (изменённые)
+            logger.info(f"[{self.name}] Step 5: Cleaning up old files")
+            self.cleanup_old_files(keep_files=changed_files)
+            
             logger.info(f"[{self.name}] Files are available for download at http://{os.getenv('SERVER_HOST', '91.217.77.71')}:{self.port}/files/")
             
-            logger.info(f"[{self.name}] Daily task completed successfully")
+            logger.info(f"[{self.name}] Daily task completed successfully: {len(changed_files)} file(s) changed")
             
         except Exception as e:
             error_msg = f"❌ Ошибка при выполнении ежедневной задачи: {str(e)}"
