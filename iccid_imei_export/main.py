@@ -37,10 +37,14 @@ def find_credentials_file():
     Returns:
         Path: Путь к файлу credentials или None
     """
+    # Определяем текущую директорию и родительскую
+    script_dir = Path(__file__).parent
+    parent_dir = script_dir.parent
+    
     # Список возможных путей
     possible_paths = [
-        current_dir / 'client_secret.json',
-        current_dir / 'credentials.json',
+        script_dir / 'client_secret.json',
+        script_dir / 'credentials.json',
         parent_dir / 'client_secret.json',
         parent_dir / 'credentials.json',
         parent_dir.parent / 'mrnet_ssh' / 'client_secret.json',
@@ -68,10 +72,13 @@ def export_iccid_imei():
     if not credentials_file:
         print(f"\n[ОШИБКА] Файл учетных данных не найден")
         print(f"[ПОДСКАЗКА] Ожидаемые пути:")
+        script_dir = Path(__file__).parent
+        parent_dir = script_dir.parent
         for path in [
-            current_dir / 'client_secret.json',
-            current_dir / 'credentials.json',
+            script_dir / 'client_secret.json',
+            script_dir / 'credentials.json',
             parent_dir / 'client_secret.json',
+            parent_dir / 'credentials.json',
             parent_dir.parent / 'mrnet_ssh' / 'client_secret.json',
         ]:
             print(f"    - {path}")
@@ -196,7 +203,8 @@ def export_iccid_imei():
             print(f"    Неизвестный оператор: {len(unknown_operator)} записей")
         
         # Создаем директорию для экспорта
-        output_dir = current_dir / 'exports'
+        script_dir = Path(__file__).parent
+        output_dir = script_dir / 'exports'
         output_dir.mkdir(exist_ok=True)
         
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
