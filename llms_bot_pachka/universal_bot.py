@@ -185,8 +185,10 @@ class UniversalPachkaBot:
             logger.info(f"[{self.name}] Waiting {delay:.1f} seconds before sending message")
             time.sleep(delay)
         
-        # Если указан chat_id, используем API для отправки в конкретный чат
-        if chat_id:
+        # Если указан chat_id и это НЕ bot3, используем API для отправки в конкретный чат
+        # Для bot3 по ТЗ используем только webhook (вариант A - быстрый), без API,
+        # поэтому ветка с API для него отключена
+        if chat_id and not self.is_bot3:
             logger.info(f"[{self.name}] Using API to send message to specific chat {chat_id}")
             if self.access_token:
                 # Пытаемся отправить через API
@@ -600,7 +602,9 @@ class UniversalPachkaBot:
             message = "\n".join(message_parts)
             
             # Отправляем сообщение
-            return self.send_api_message(message, chat_id)
+            # Для bot3 по варианту A отправляем ТОЛЬКО через webhook, без API,
+            # поэтому используем send_webhook_message (даже если передан chat_id)
+            return self.send_webhook_message(message, chat_id)
             
         except Exception as e:
             logger.error(f"[{self.name}] Error sending files to Pachka: {e}")
@@ -624,7 +628,7 @@ class UniversalPachkaBot:
         """
         chat_id = 26222583  # ID чата для отправки (число, не строка)
         
-        logger.info(f"[{self.name}] Starting daily task execution")
+            logger.info(f"[{self.name}] Starting daily task execution")
         
         try:
             # 1. Запускаем скрипт
@@ -637,7 +641,12 @@ class UniversalPachkaBot:
                 # Для этого нужно сохранить последнюю ошибку в атрибуте класса
                 if hasattr(self, '_last_script_error') and self._last_script_error:
                     error_msg += f"\n\nДетали ошибки:\n{self._last_script_error[:500]}"  # Ограничиваем длину
-                self.send_api_message(error_msg, chat_id)
+                # Вариант A: для bot3 отправляем через webhook (без API),
+                # для остальных ботов оставляем API
+                if self.is_bot3:
+                    self.send_webhook_message(error_msg, chat_id)
+                else:
+                    self.send_api_message(error_msg, chat_id)
                 return
             
             # 2. Ищем файлы за сегодня
@@ -646,14 +655,20 @@ class UniversalPachkaBot:
             
             if not files:
                 error_msg = "❌ Ошибка: файлы не были созданы скриптом"
-                self.send_api_message(error_msg, chat_id)
+                if self.is_bot3:
+                    self.send_webhook_message(error_msg, chat_id)
+                else:
+                    self.send_api_message(error_msg, chat_id)
                 return
             
             # 3. Отправляем файлы в Pachka
             logger.info(f"[{self.name}] Step 3: Sending files to Pachka")
             if not self.send_files_to_pachka(files, chat_id):
                 error_msg = "❌ Ошибка: не удалось отправить файлы в Pachka"
-                self.send_api_message(error_msg, chat_id)
+                if self.is_bot3:
+                    self.send_webhook_message(error_msg, chat_id)
+                else:
+                    self.send_api_message(error_msg, chat_id)
                 return
             
             # 4. Удаляем файлы после успешной отправки
@@ -665,7 +680,10 @@ class UniversalPachkaBot:
         except Exception as e:
             error_msg = f"❌ Ошибка при выполнении ежедневной задачи: {str(e)}"
             logger.error(f"[{self.name}] Error in daily task: {e}")
-            self.send_api_message(error_msg, chat_id)
+            if self.is_bot3:
+                self.send_webhook_message(error_msg, chat_id)
+            else:
+                self.send_api_message(error_msg, chat_id)
 
     def handle_webhook_event(self, event_data: Dict[str, Any]) -> None:
         """
