@@ -627,8 +627,8 @@ class UniversalPachkaBot:
         Выполняет ежедневную задачу: запуск скрипта, поиск файлов, отправка в Pachka
         """
         chat_id = 26222583  # ID чата для отправки (число, не строка)
-        
-            logger.info(f"[{self.name}] Starting daily task execution")
+
+        logger.info(f"[{self.name}] Starting daily task execution")
         
         try:
             # 1. Запускаем скрипт
