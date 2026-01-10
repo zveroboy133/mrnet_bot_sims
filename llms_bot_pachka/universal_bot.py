@@ -643,10 +643,13 @@ class UniversalPachkaBot:
     
     def compare_files(self, existing_files: Dict[str, bytes], new_files: List[str]) -> List[str]:
         """
-        Сравнивает новые файлы со старыми по содержимому
+        Сравнивает новые файлы со старыми по содержимому (не по имени, т.к. имена содержат временные метки)
         Возвращает список файлов, которые изменились или являются новыми
         """
         changed_files = []
+        
+        # Преобразуем словарь существующих файлов в множество содержимого для быстрого поиска
+        existing_content_set = set(existing_files.values())
         
         for new_file_path in new_files:
             new_file_name = os.path.basename(new_file_path)
@@ -656,20 +659,14 @@ class UniversalPachkaBot:
                 with open(new_file_path, 'rb') as f:
                     new_content = f.read()
                 
-                # Проверяем, есть ли файл с таким же именем в старых
-                if new_file_name in existing_files:
-                    old_content = existing_files[new_file_name]
-                    if old_content == new_content:
-                        # Содержимое одинаковое - файл не изменился
-                        logger.info(f"[{self.name}] File {new_file_name} unchanged, skipping")
-                        continue
-                    else:
-                        # Содержимое различается - файл изменился
-                        logger.info(f"[{self.name}] File {new_file_name} changed (old: {len(old_content)} bytes, new: {len(new_content)} bytes)")
-                        changed_files.append(new_file_path)
+                # Проверяем, есть ли файл с таким же содержимым среди старых (независимо от имени)
+                if new_content in existing_content_set:
+                    # Содержимое найдено среди старых файлов - файл не изменился
+                    logger.info(f"[{self.name}] File {new_file_name} unchanged (content matches existing file), skipping")
+                    continue
                 else:
-                    # Файл новый (не было такого имени в старых)
-                    logger.info(f"[{self.name}] New file {new_file_name} found")
+                    # Содержимое не найдено среди старых - файл новый или изменился
+                    logger.info(f"[{self.name}] File {new_file_name} is new or changed ({len(new_content)} bytes)")
                     changed_files.append(new_file_path)
                     
             except Exception as e:
